@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const sequelize = require('./models/index');
+const Device = require('./models/device');
 const User = require('./models/user');
 
 const path = require('path');
@@ -24,17 +25,32 @@ async function start() {
 		console.log('✅ Tables synced');
 
 		// ==================== LOGIN ====================
-		app.post('/api/login', (req, res) => {
+		app.post('/api/login', async (req, res) => {
 			const { username, password } = req.body;
+
+			// 1. Check users table (login by email or name)
+			const dbUser = await User.findOne({
+				where: { email: username }
+			});
+			if (dbUser && dbUser.password === password) {
+				const token = jwt.sign(
+					{ id: dbUser.id, name: dbUser.name, email: dbUser.email, roll: dbUser.roll },
+					process.env.JWT_SECRET,
+					{ expiresIn: '24h' }
+				);
+				return res.json({ token, user: { id: dbUser.id, name: dbUser.name, roll: dbUser.roll } });
+			}
+
+			// 2. Fallback: .env super admin (always works)
 			if (
 				username === process.env.ADMIN_USERNAME &&
 				password === process.env.ADMIN_PASSWORD
 			) {
-				const token = jwt.sign({ role: 'admin' }, process.env.JWT_SECRET, { expiresIn: '24h' });
-				res.json({ token });
-			} else {
-				res.status(401).json({ error: 'Invalid username or password' });
+				const token = jwt.sign({ role: 'admin', name: 'Super Admin' }, process.env.JWT_SECRET, { expiresIn: '24h' });
+				return res.json({ token, user: { name: 'Super Admin', roll: 'Admin' } });
 			}
+
+			res.status(401).json({ error: 'Invalid username or password' });
 		});
 
 		// Verify token endpoint
@@ -61,67 +77,67 @@ async function start() {
 			}
 		}
 
-		// ==================== USER ROUTES ====================
+		// ==================== DEVICE ROUTES ====================
 
 		// GET /users — return all users
-		app.get('/users', async (req, res) => {
+		app.get('/devices', async (req, res) => {
 			try {
-				const users = await User.findAll();
+				const users = await Device.findAll();
 				res.json(users);
 			} catch (err) {
-				res.status(500).json({ error: 'Failed to fetch users', message: err.message });
+				res.status(500).json({ error: 'Failed to fetch devices', message: err.message });
 			}
 		});
 
 
-		// GET /create-user — create a new user via query params
-		// Usage: /create-user?name=John&email=john@example.com&deviceToken=abc123
-		app.get('/create-user', async (req, res) => {
+		// GET /create-device — create a new device via query params
+		// Usage: /create-device?name=John&adminId=admin1&deviceToken=abc123
+		app.get('/create-device', async (req, res) => {
 			try {
-				const { name, email, status, deviceToken } = req.query;
+				const { name, adminId, status, deviceToken } = req.query;
 				if (!name) return res.status(400).json({ error: 'Name is required' });
-				if (!email) return res.status(400).json({ error: 'Email is required' });
+				if (!adminId) return res.status(400).json({ error: 'Admin ID is required' });
 				if (!deviceToken) return res.status(400).json({ error: 'Device token is required' });
-				const existingUser = await User.findOne({ where: { deviceToken } });
+				const existingUser = await Device.findOne({ where: { deviceToken } });
 				if (existingUser) {
-					return res.status(409).json({ error: 'Already user created' });
+					return res.status(409).json({ error: 'Already device created' });
 				}
-				const user = await User.create({ name, email, status, deviceToken });
+				const user = await Device.create({ name, adminId, status, deviceToken });
 				res.status(201).json(user);
 			} catch (err) {
-				res.status(500).json({ error: 'Failed to create user', message: err.message });
+				res.status(500).json({ error: 'Failed to create device', message: err.message });
 			}
 		});
 
 		// POST /users — create a new user
-		app.post('/users', async (req, res) => {
+		app.post('/devices', async (req, res) => {
 			try {
-				const { name, email, status, deviceToken } = req.body;
+				const { name, adminId, status, deviceToken } = req.body;
 				if (!name) return res.status(400).json({ error: 'Name is required' });
-				if (!email) return res.status(400).json({ error: 'Email is required' });
+				if (!adminId) return res.status(400).json({ error: 'Admin ID is required' });
 				if (!deviceToken) return res.status(400).json({ error: 'Device token is required' });
 				// Check if a user with this deviceToken already exists
-				const existingUser = await User.findOne({ where: { deviceToken } });
+				const existingUser = await Device.findOne({ where: { deviceToken } });
 				if (existingUser) {
-					return res.status(409).json({ error: 'Already user created' });
+					return res.status(409).json({ error: 'Already device created' });
 				}
-				const user = await User.create({ name, email, status, deviceToken });
+				const user = await Device.create({ name, adminId, status, deviceToken });
 				res.status(201).json(user);
 			} catch (err) {
-				res.status(500).json({ error: 'Failed to create user', message: err.message });
+				res.status(500).json({ error: 'Failed to create device', message: err.message });
 			}
 		});
 
 		// GET /user-updateLocation — update user lat/lon via query params
 		// Usage: /user-updateLocation?deviceToken=abc123&latitude=23.8103&longitude=90.4125
-		app.get('/user-updateLocation', async (req, res) => {
+		app.get('/device-updateLocation', async (req, res) => {
 			try {
 				const { deviceToken, latitude, longitude } = req.query;
 				if (!deviceToken) return res.status(400).json({ error: 'Device token is required' });
 				if (!latitude) return res.status(400).json({ error: 'Latitude is required' });
 				if (!longitude) return res.status(400).json({ error: 'Longitude is required' });
-				const user = await User.findOne({ where: { deviceToken } });
-				if (!user) return res.status(404).json({ error: 'User not found' });
+				const user = await Device.findOne({ where: { deviceToken } });
+				if (!user) return res.status(404).json({ error: 'Device not found' });
 				await user.update({ latitude, longitude });
 				res.json({ success: true, message: 'Location updated', latitude, longitude });
 			} catch (err) {
@@ -131,12 +147,12 @@ async function start() {
 
 		// GET /user-updateDeviceInfo — update device info via query params
 		// Usage: /user-updateDeviceInfo?deviceToken=abc123&brand=Samsung&model=Galaxy S21&androidVersion=13&...
-		app.get('/user-updateDeviceInfo', async (req, res) => {
+		app.get('/device-updateDeviceInfo', async (req, res) => {
 			try {
 				const { deviceToken, ...info } = req.query;
 				if (!deviceToken) return res.status(400).json({ error: 'Device token is required' });
-				const user = await User.findOne({ where: { deviceToken } });
-				if (!user) return res.status(404).json({ error: 'User not found' });
+				const user = await Device.findOne({ where: { deviceToken } });
+				if (!user) return res.status(404).json({ error: 'Device not found' });
 				await user.update({ deviceInfo: JSON.stringify(info) });
 				res.json({ success: true, message: 'Device info updated' });
 			} catch (err) {
@@ -145,21 +161,21 @@ async function start() {
 		});
 
 		// GET /users/:id — get user by id
-		app.get('/users/:id', authMiddleware, async (req, res) => {
+		app.get('/devices/:id', authMiddleware, async (req, res) => {
 			try {
-				const user = await User.findByPk(req.params.id);
-				if (!user) return res.status(404).json({ error: 'User not found' });
+				const user = await Device.findByPk(req.params.id);
+				if (!user) return res.status(404).json({ error: 'Device not found' });
 				res.json(user);
 			} catch (err) {
-				res.status(500).json({ error: 'Failed to fetch user', message: err.message });
+				res.status(500).json({ error: 'Failed to fetch device', message: err.message });
 			}
 		});
 
 		// PUT /users/:id — update user by id
-		app.put('/users/:id', authMiddleware, async (req, res) => {
+		app.put('/devices/:id', authMiddleware, async (req, res) => {
 			try {
-				const user = await User.findByPk(req.params.id);
-				if (!user) return res.status(404).json({ error: 'User not found' });
+				const user = await Device.findByPk(req.params.id);
+				if (!user) return res.status(404).json({ error: 'Device not found' });
 				const oldStatus = user.status;
 				await user.update(req.body);
 
@@ -186,17 +202,17 @@ async function start() {
 
 				res.json(user);
 			} catch (err) {
-				res.status(500).json({ error: 'Failed to update user', message: err.message });
+				res.status(500).json({ error: 'Failed to update device', message: err.message });
 			}
 		});
 
 		// POST /users/:id/register-device — register FCM device token
-		app.post('/users/:id/register-device', async (req, res) => {
+		app.post('/devices/:id/register-device', async (req, res) => {
 			try {
-				const user = await User.findByPk(req.params.id);
-				if (!user) return res.status(404).json({ error: 'User not found' });
+				const user = await Device.findByPk(req.params.id);
+				if (!user) return res.status(404).json({ error: 'Device not found' });
 				// Remove token from any other user first
-				await User.update({ deviceToken: null }, { where: { deviceToken: req.body.deviceToken } });
+				await Device.update({ deviceToken: null }, { where: { deviceToken: req.body.deviceToken } });
 				await user.update({ deviceToken: req.body.deviceToken });
 				res.json({ success: true, message: 'Device registered' });
 			} catch (err) {
@@ -205,10 +221,10 @@ async function start() {
 		});
 
 		// POST /users/:id/send-command — send FCM command to device
-		app.post('/users/:id/send-command', authMiddleware, async (req, res) => {
+		app.post('/devices/:id/send-command', authMiddleware, async (req, res) => {
 			try {
-				const user = await User.findByPk(req.params.id);
-				if (!user) return res.status(404).json({ error: 'User not found' });
+				const user = await Device.findByPk(req.params.id);
+				if (!user) return res.status(404).json({ error: 'Device not found' });
 				if (!user.deviceToken) return res.status(400).json({ error: 'No device token registered' });
 
 				const { command, message: msgText } = req.body;
@@ -248,7 +264,7 @@ async function start() {
 							:
 							command == 'lock_device_enable' ? `Lock Device` 
 							:
-							command == 'lock_device_disable' ? `Unlock Device` 
+							command == 'lock_device_disable' ? `Active Device` 
 							:
 							command == 'send_message' ? `${msgText}` 
 							: command,
@@ -276,6 +292,71 @@ async function start() {
 			} catch (err) {
 				console.error('Command error:', err.message);
 				res.status(500).json({ error: 'Failed to send command', message: err.message });
+			}
+		});
+
+		// DELETE /users/:id — delete user by id
+		app.delete('/devices/:id', authMiddleware, async (req, res) => {
+			try {
+				const user = await Device.findByPk(req.params.id);
+				if (!user) return res.status(404).json({ error: 'Device not found' });
+				await user.destroy();
+				res.json({ success: true });
+			} catch (err) {
+				res.status(500).json({ error: 'Failed to delete device', message: err.message });
+			}
+		});
+
+		// ==================== USER ROUTES ====================
+
+		// GET /users — return all users
+		app.get('/users', authMiddleware, async (req, res) => {
+			try {
+				const users = await User.findAll();
+				res.json(users);
+			} catch (err) {
+				res.status(500).json({ error: 'Failed to fetch users', message: err.message });
+			}
+		});
+
+		// POST /users — create a new user
+		app.post('/users', authMiddleware, async (req, res) => {
+			try {
+				const { name, email, phone, password, roll } = req.body;
+				if (!name) return res.status(400).json({ error: 'Name is required' });
+				if (!email) return res.status(400).json({ error: 'Email is required' });
+				if (!password) return res.status(400).json({ error: 'Password is required' });
+				const existingUser = await User.findOne({ where: { email } });
+				if (existingUser) {
+					return res.status(409).json({ error: 'Email already exists' });
+				}
+				const user = await User.create({ name, email, phone, password, roll });
+				res.status(201).json(user);
+			} catch (err) {
+				res.status(500).json({ error: 'Failed to create user', message: err.message });
+			}
+		});
+
+		// GET /users/:id — get user by id
+		app.get('/users/:id', authMiddleware, async (req, res) => {
+			try {
+				const user = await User.findByPk(req.params.id);
+				if (!user) return res.status(404).json({ error: 'User not found' });
+				res.json(user);
+			} catch (err) {
+				res.status(500).json({ error: 'Failed to fetch user', message: err.message });
+			}
+		});
+
+		// PUT /users/:id — update user by id
+		app.put('/users/:id', authMiddleware, async (req, res) => {
+			try {
+				const user = await User.findByPk(req.params.id);
+				if (!user) return res.status(404).json({ error: 'User not found' });
+				await user.update(req.body);
+				res.json(user);
+			} catch (err) {
+				res.status(500).json({ error: 'Failed to update user', message: err.message });
 			}
 		});
 

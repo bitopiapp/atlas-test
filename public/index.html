@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>User Panel - Atlas Test</title>
+  <title>Device Panel - Atlas Test</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -337,6 +337,7 @@
   <div class="sidebar">
     <h2>Atlas Panel</h2>
     <a href="#" class="active" data-section="dashboard">Dashboard</a>
+    <a href="#" data-section="devices">Devices</a>
     <a href="#" data-section="users">Users</a>
     <a href="#" onclick="logout()" style="position:absolute;bottom:20px;left:0;right:0;color:#ef4444;">Logout</a>
   </div>
@@ -350,7 +351,11 @@
         <h1>Dashboard</h1>
       </div>
       <div class="stats">
-        <div class="stat-card users" onclick="navigateTo('users')" style="cursor:pointer;">
+        <div class="stat-card users" onclick="navigateTo('devices')" style="cursor:pointer;">
+          <h3>Total Devices</h3>
+          <div class="number" id="deviceCount">0</div>
+        </div>
+        <div class="stat-card" onclick="navigateTo('users')" style="cursor:pointer;border-left:4px solid #22c55e;">
           <h3>Total Users</h3>
           <div class="number" id="userCount">0</div>
         </div>
@@ -358,10 +363,32 @@
     </div>
 
     <!-- Users Section -->
+    <div class="section" id="devices">
+      <div class="header">
+        <h1>Devices</h1>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Admin ID</th>
+              <th>Status</th>
+           
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="devicesTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Users Section -->
     <div class="section" id="users">
       <div class="header">
         <h1>Users</h1>
-        <button class="btn btn-primary" onclick="openModal('user')">+ Add User</button>
+        <button class="btn btn-primary" onclick="openModal('userAccount')">+ Add User</button>
       </div>
       <div class="table-container">
         <table>
@@ -370,8 +397,8 @@
               <th>ID</th>
               <th>Name</th>
               <th>Email</th>
-              <th>Status</th>
-           
+              <th>Phone</th>
+              <th>Roll</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -385,7 +412,7 @@
   <!-- Modal -->
   <div class="modal-overlay" id="modalOverlay">
     <div class="modal">
-      <h2 id="modalTitle">Add User</h2>
+      <h2 id="modalTitle">Add Device</h2>
       <form id="modalForm"></form>
     </div>
   </div>
@@ -396,10 +423,19 @@
   <script>
     const API = '';
     const token = localStorage.getItem('token');
+    const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+    const isAdmin = !currentUser.roll || currentUser.roll === 'Admin';
 
     // Redirect to login if no token
     if (!token) {
       window.location.href = '/login.html';
+    }
+
+    // Hide admin-only elements for User roll
+    if (!isAdmin) {
+      document.querySelector('[data-section="users"]').style.display = 'none';
+      document.getElementById('users').remove();
+      document.querySelector('[onclick="navigateTo(\'users\')"]').style.display = 'none';
     }
 
     // Verify token is still valid
@@ -423,6 +459,7 @@
 
     function logout() {
       localStorage.removeItem('token');
+      localStorage.removeItem('user');
       window.location.href = '/login.html';
     }
 
@@ -442,6 +479,18 @@
       });
     });
 
+    // ==================== TOGGLE PASSWORD ====================
+    function togglePass(inputId, btn) {
+      const input = document.getElementById(inputId);
+      if (input.type === 'password') {
+        input.type = 'text';
+        btn.style.color = '#3b82f6';
+      } else {
+        input.type = 'password';
+        btn.style.color = '#64748b';
+      }
+    }
+
     // ==================== TOAST ====================
     function showToast(message, type = 'success') {
       const toast = document.getElementById('toast');
@@ -458,21 +507,21 @@
     }
 
     // ==================== FETCH DATA ====================
-    async function fetchUsers() {
-      const res = await fetch(`${API}/users`, { headers: authHeaders });
+    async function fetchDevices() {
+      const res = await fetch(`${API}/devices`, { headers: authHeaders });
       const users = await res.json();
-      document.getElementById('userCount').textContent = users.length;
-      window._users = users;
-      const tbody = document.getElementById('usersTable');
+      document.getElementById('deviceCount').textContent = users.length;
+      window._devices = users;
+      const tbody = document.getElementById('devicesTable');
       if (users.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><p>No users found</p><button class="btn btn-primary" onclick="openModal(\'user\')">Add First User</button></div></td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><p>No devices found</p><button class="btn btn-primary" onclick="openModal(\'user\')">Add First Device</button></div></td></tr>';
         return;
       }
       tbody.innerHTML = users.map(u => `
         <tr>
           <td>${u.id}</td>
           <td><strong>${u.name}</strong></td>
-          <td>${u.email || '-'}</td>
+          <td>${u.adminId || '-'}</td>
           <td>
             <select class="role-dropdown" onchange="updateRole(${u.id}, this.value)">
               ${getRoleOptions(u.status || 'unlock')}
@@ -481,7 +530,7 @@
         
           <td class="actions">
             <a href="/view.html?id=${u.id}" class="btn btn-view" style="text-decoration:none;">View</a>
-            <button class="btn btn-edit" onclick="editUser(${u.id})">Update</button>
+            <button class="btn btn-edit" onclick="editDevice(${u.id})">Update</button>
           </td>
         </tr>
       `).join('');
@@ -490,7 +539,7 @@
     // ==================== UPDATE STATUS ====================
     async function updateRole(id, status) {
       try {
-        const res = await fetch(`${API}/users/${id}`, {
+        const res = await fetch(`${API}/devices/${id}`, {
           method: 'PUT',
           headers: authHeaders,
           body: JSON.stringify({ status })
@@ -536,15 +585,15 @@
       const form = document.getElementById('modalForm');
 
       if (type === 'user') {
-        title.textContent = isEdit ? 'Edit User' : 'Add User';
+        title.textContent = isEdit ? 'Edit Device' : 'Add Device';
         form.innerHTML = `
           <div class="form-group">
             <label>Name *</label>
             <input type="text" id="f_name" value="${data ? data.name : ''}" required>
           </div>
           <div class="form-group">
-            <label>Email *</label>
-            <input type="email" id="f_email" value="${data ? data.email || '' : ''}" required>
+            <label>Admin ID *</label>
+            <input type="text" id="f_adminId" value="${data ? data.adminId || '' : ''}" required>
           </div>
           <div class="form-group">
             <label>Device Token *</label>
@@ -563,32 +612,145 @@
         `;
       }
 
+      if (type === 'userAccount') {
+        title.textContent = isEdit ? 'Edit User' : 'Add User';
+        form.innerHTML = `
+          <div class="form-group">
+            <label>Name *</label>
+            <input type="text" id="f_uname" value="${data ? data.name : ''}" required>
+          </div>
+          <div class="form-group">
+            <label>Email *</label>
+            <input type="email" id="f_uemail" value="${data ? data.email || '' : ''}" ${isEdit ? 'readonly style="background:#f1f5f9;color:#94a3b8;cursor:not-allowed"' : ''} required>
+          </div>
+          <div class="form-group">
+            <label>Phone</label>
+            <input type="text" id="f_uphone" value="${data ? data.phone || '' : ''}">
+          </div>
+          <div class="form-group">
+            <label>${isEdit ? 'Password (leave blank to keep)' : 'Password *'}</label>
+            <div style="position:relative;">
+              <input type="password" id="f_upassword" ${isEdit ? '' : 'required'} style="padding-right:40px;">
+              <button type="button" onclick="togglePass('f_upassword', this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:18px;color:#64748b;">&#128065;</button>
+            </div>
+          </div>
+          <div class="form-group" ${isEdit ? 'style="display:none"' : ''}>
+            <label>Confirm Password *</label>
+            <div style="position:relative;">
+              <input type="password" id="f_uconfirm" ${isEdit ? '' : 'required'} style="padding-right:40px;">
+              <button type="button" onclick="togglePass('f_uconfirm', this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:18px;color:#64748b;">&#128065;</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Roll</label>
+            <select id="f_uroll">
+              <option value="Admin" ${data && data.roll === 'Admin' ? 'selected' : ''}>Admin</option>
+              <option value="User" ${!data || data.roll === 'User' ? 'selected' : ''}>User</option>
+            </select>
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn btn-cancel" onclick="closeModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary">${isEdit ? 'Update' : 'Create'}</button>
+          </div>
+        `;
+      }
+
       form.onsubmit = handleSubmit;
       document.getElementById('modalOverlay').classList.add('show');
     }
 
+    // ==================== FETCH USERS ====================
+    async function fetchUsers() {
+      const res = await fetch(`${API}/users`, { headers: authHeaders });
+      const users = await res.json();
+      document.getElementById('userCount').textContent = users.length;
+      const tbody = document.getElementById('usersTable');
+      if (users.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><p>No users found</p><button class="btn btn-primary" onclick="openModal(\'userAccount\')">Add First User</button></div></td></tr>';
+        return;
+      }
+      tbody.innerHTML = users.map(u => `
+        <tr>
+          <td>${u.id}</td>
+          <td><strong>${u.name}</strong></td>
+          <td>${u.email || '-'}</td>
+          <td>${u.phone || '-'}</td>
+          <td><span style="padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;${u.roll === 'Admin' ? 'background:#dbeafe;color:#2563eb' : 'background:#f1f5f9;color:#64748b'}">${u.roll || 'User'}</span></td>
+          <td class="actions">
+            <button class="btn btn-edit" onclick="editUser(${u.id})">Edit</button>
+            <button class="btn btn-danger" onclick="deleteUser(${u.id})">Delete</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
     // ==================== EDIT HELPERS ====================
+    async function editDevice(id) {
+      const res = await fetch(`${API}/devices/${id}`, { headers: authHeaders });
+      const data = await res.json();
+      openModal('user', data);
+    }
+
     async function editUser(id) {
       const res = await fetch(`${API}/users/${id}`, { headers: authHeaders });
       const data = await res.json();
-      openModal('user', data);
+      openModal('userAccount', data);
+    }
+
+    async function deleteUser(id) {
+      if (!confirm('Are you sure you want to delete this user?')) return;
+      try {
+        const res = await fetch(`${API}/users/${id}`, { method: 'DELETE', headers: authHeaders });
+        if (res.ok) {
+          showToast('User deleted successfully');
+          loadAll();
+        } else {
+          showToast('Failed to delete user', 'error');
+        }
+      } catch (err) {
+        showToast('Error: ' + err.message, 'error');
+      }
     }
 
     // ==================== FORM SUBMIT ====================
     async function handleSubmit(e) {
       e.preventDefault();
-      let url = `${API}/users`;
-      let body = {
-        name: document.getElementById('f_name').value,
-        email: document.getElementById('f_email').value,
-        status: document.getElementById('f_status').value
-      };
-      if (!editingId) {
-        body.deviceToken = document.getElementById('f_deviceToken').value;
-      }
+      let url, body, method;
 
-      const method = editingId ? 'PUT' : 'POST';
-      if (editingId) url += `/${editingId}`;
+      if (editingType === 'userAccount') {
+        url = `${API}/users`;
+        body = {
+          name: document.getElementById('f_uname').value,
+          email: document.getElementById('f_uemail').value,
+          phone: document.getElementById('f_uphone').value,
+          roll: document.getElementById('f_uroll').value
+        };
+        const pw = document.getElementById('f_upassword').value;
+        const confirm = document.getElementById('f_uconfirm').value;
+        if (!editingId && !pw) {
+          showToast('Password is required', 'error');
+          return;
+        }
+        if (pw && pw !== confirm && !editingId) {
+          showToast('Passwords do not match', 'error');
+          return;
+        }
+        if (pw) body.password = pw;
+        method = editingId ? 'PUT' : 'POST';
+        if (editingId) url += `/${editingId}`;
+      } else {
+        url = `${API}/devices`;
+        body = {
+          name: document.getElementById('f_name').value,
+          adminId: document.getElementById('f_adminId').value,
+          status: document.getElementById('f_status').value
+        };
+        if (!editingId) {
+          body.deviceToken = document.getElementById('f_deviceToken').value;
+        }
+        method = editingId ? 'PUT' : 'POST';
+        if (editingId) url += `/${editingId}`;
+      }
 
       try {
         const res = await fetch(url, {
@@ -612,7 +774,8 @@
 
     // ==================== LOAD ALL DATA ====================
     function loadAll() {
-      fetchUsers();
+      fetchDevices();
+      if (isAdmin) fetchUsers();
     }
 
     loadAll();

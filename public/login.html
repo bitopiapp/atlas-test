@@ -136,6 +136,7 @@
 
         if (res.ok) {
           localStorage.setItem('token', data.token);
+          if (data.user) localStorage.setItem('user', JSON.stringify(data.user));
           window.location.href = '/';
         } else {
           errorMsg.textContent = data.error || 'Login failed';

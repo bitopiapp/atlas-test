@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>User Details - Atlas Panel</title>
+  <title>Device Details - Atlas Panel</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -419,34 +419,34 @@
   <div class="sidebar">
     <h2>Atlas Panel</h2>
     <a href="/">Dashboard</a>
-    <a href="/" class="active">Users</a>
+    <a href="/" class="active">Devices</a>
     <a href="#" onclick="logout()" style="position:absolute;bottom:20px;left:0;right:0;color:#ef4444;">Logout</a>
   </div>
 
   <!-- Main Content -->
   <div class="main">
     <div class="header">
-      <h1>User Details</h1>
-      <a href="/" class="btn btn-back">Back to Users</a>
+      <h1>Device Details</h1>
+      <a href="/" class="btn btn-back">Back to Devices</a>
     </div>
 
     <div id="content">
-      <div class="loading">Loading user details...</div>
+      <div class="loading">Loading device details...</div>
     </div>
   </div>
 
   <!-- Modal -->
   <div class="modal-overlay" id="modalOverlay">
     <div class="modal">
-      <h2>Edit User</h2>
+      <h2>Edit Device</h2>
       <form id="editForm">
         <div class="form-group">
           <label>Name *</label>
           <input type="text" id="f_name" required>
         </div>
         <div class="form-group">
-          <label>Email *</label>
-          <input type="email" id="f_email" required>
+          <label>Admin ID *</label>
+          <input type="text" id="f_adminId" required>
         </div>
         <div class="form-group">
           <label>Employee ID</label>
@@ -496,6 +496,7 @@
 
     function logout() {
       localStorage.removeItem('token');
+      localStorage.removeItem('user');
       window.location.href = '/login.html';
     }
 
@@ -505,7 +506,7 @@
       });
     }
 
-    let currentUser = null;
+    let currentDevice = null;
 
     function buildDeviceInfoRows(deviceInfo) {
       if (!deviceInfo) return '';
@@ -518,22 +519,22 @@
       } catch(e) { return ''; }
     }
 
-    async function loadUser() {
+    async function loadDevice() {
       const params = new URLSearchParams(window.location.search);
       const id = params.get('id');
       if (!id) {
-        document.getElementById('content').innerHTML = '<div class="loading">No user ID provided.</div>';
+        document.getElementById('content').innerHTML = '<div class="loading">No device ID provided.</div>';
         return;
       }
 
       try {
-        const res = await fetch(`/users/${id}`, { headers: authHeaders });
+        const res = await fetch(`/devices/${id}`, { headers: authHeaders });
         if (!res.ok) {
-          document.getElementById('content').innerHTML = '<div class="loading">User not found.</div>';
+          document.getElementById('content').innerHTML = '<div class="loading">Device not found.</div>';
           return;
         }
         const u = await res.json();
-        currentUser = u;
+        currentDevice = u;
         const initials = u.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
         const statusClass = u.status === 'lock' ? 'status-lock' : 'status-unlock';
         const statusText = (u.status || 'unlock').charAt(0).toUpperCase() + (u.status || 'unlock').slice(1);
@@ -545,12 +546,12 @@
               <div class="user-avatar">${initials}</div>
               <div>
                 <h2>${u.name}</h2>
-                <p>${u.email || '-'}</p>
+                <p>${u.adminId || '-'}</p>
               </div>
             </div>
             <div class="user-card-body">
               <div class="detail-row">
-                <div class="detail-label">User ID</div>
+                <div class="detail-label">Device ID</div>
                 <div class="detail-value">${u.id}</div>
               </div>
               <div class="detail-row">
@@ -562,8 +563,8 @@
                 <div class="detail-value">${u.employeeId || '-'}</div>
               </div>
                <div class="detail-row">
-                <div class="detail-label">Email</div>
-                <div class="detail-value">${u.email || '-'}</div>
+                <div class="detail-label">Admin ID</div>
+                <div class="detail-value">${u.adminId || '-'}</div>
               </div>
               
               ${buildDeviceInfoRows(u.deviceInfo)}
@@ -597,7 +598,7 @@
             </div>
             <div class="action-buttons">
               <button class="btn btn-edit" onclick="openEdit()">Update</button>
-              <button class="btn btn-danger" onclick="deleteUser()">Delete</button>
+              <button class="btn btn-danger" onclick="deleteDevice()">Delete</button>
             </div>
           </div>
 
@@ -644,7 +645,7 @@
           </div>
         `;
       } catch (err) {
-        document.getElementById('content').innerHTML = '<div class="loading">Error loading user.</div>';
+        document.getElementById('content').innerHTML = '<div class="loading">Error loading device.</div>';
       }
     }
 
@@ -658,13 +659,13 @@
 
     // ==================== SHOW DEVICE INFO ====================
     function showDeviceInfo() {
-      if (!currentUser) return;
+      if (!currentDevice) return;
       const container = document.getElementById('deviceInfoContent');
-      if (!currentUser.deviceInfo) {
+      if (!currentDevice.deviceInfo) {
         container.innerHTML = '<div style="text-align:center;color:#94a3b8;padding:20px;">No device info available.<br>Send "Get Info" command first.</div>';
       } else {
         try {
-          const info = JSON.parse(currentUser.deviceInfo);
+          const info = JSON.parse(currentDevice.deviceInfo);
           container.innerHTML = Object.entries(info).map(([key, value]) => `
             <div class="detail-row">
               <div class="detail-label">${key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase())}</div>
@@ -684,9 +685,9 @@
 
     // ==================== SEND COMMAND ====================
     async function sendCommand(command) {
-      if (!currentUser) return;
+      if (!currentDevice) return;
       try {
-        const res = await fetch(`/users/${currentUser.id}/send-command`, {
+        const res = await fetch(`/devices/${currentDevice.id}/send-command`, {
           method: 'POST',
           headers: authHeaders,
           body: JSON.stringify({ command })
@@ -694,7 +695,7 @@
         const data = await res.json();
         if (res.ok) {
           showToast(data.message || 'Command sent successfully');
-          loadUser();
+          loadDevice();
         } else {
           showToast(data.error || 'Failed to send command', 'error');
         }
@@ -705,14 +706,14 @@
 
     // ==================== SEND MESSAGE ====================
     async function sendMessage() {
-      if (!currentUser) return;
+      if (!currentDevice) return;
       const msg = document.getElementById('fcmMessage').value.trim();
       if (!msg) {
         showToast('Please type a message', 'error');
         return;
       }
       try {
-        const res = await fetch(`/users/${currentUser.id}/send-command`, {
+        const res = await fetch(`/devices/${currentDevice.id}/send-command`, {
           method: 'POST',
           headers: authHeaders,
           body: JSON.stringify({ command: 'send_message', message: msg })
@@ -732,21 +733,21 @@
     // ==================== UPDATE STATUS ====================
     async function updateStatus(status) {
       try {
-        const res = await fetch(`/users/${currentUser.id}`, {
+        const res = await fetch(`/devices/${currentDevice.id}`, {
           method: 'PUT',
           headers: authHeaders,
           body: JSON.stringify({ status })
         });
         if (res.ok) {
           showToast(`Device ${status === 'lock' ? 'locked' : 'unlocked'} successfully`);
-          loadUser();
+          loadDevice();
         } else {
           showToast('Failed to update status', 'error');
-          loadUser();
+          loadDevice();
         }
       } catch (err) {
         showToast('Error: ' + err.message, 'error');
-        loadUser();
+        loadDevice();
       }
     }
 
@@ -760,25 +761,25 @@
     });
 
     function openEdit() {
-      if (!currentUser) return;
-      document.getElementById('f_name').value = currentUser.name;
-      document.getElementById('f_email').value = currentUser.email || '';
-      document.getElementById('f_employeeId').value = currentUser.employeeId || '';
-      document.getElementById('f_latitude').value = currentUser.latitude || '';
-      document.getElementById('f_longitude').value = currentUser.longitude || '';
-      document.getElementById('f_deviceToken').value = currentUser.deviceToken || '';
+      if (!currentDevice) return;
+      document.getElementById('f_name').value = currentDevice.name;
+      document.getElementById('f_adminId').value = currentDevice.adminId || '';
+      document.getElementById('f_employeeId').value = currentDevice.employeeId || '';
+      document.getElementById('f_latitude').value = currentDevice.latitude || '';
+      document.getElementById('f_longitude').value = currentDevice.longitude || '';
+      document.getElementById('f_deviceToken').value = currentDevice.deviceToken || '';
       document.getElementById('modalOverlay').classList.add('show');
     }
 
     document.getElementById('editForm').onsubmit = async function(e) {
       e.preventDefault();
       try {
-        const res = await fetch(`/users/${currentUser.id}`, {
+        const res = await fetch(`/devices/${currentDevice.id}`, {
           method: 'PUT',
           headers: authHeaders,
           body: JSON.stringify({
             name: document.getElementById('f_name').value,
-            email: document.getElementById('f_email').value,
+            adminId: document.getElementById('f_adminId').value,
             employeeId: document.getElementById('f_employeeId').value,
             latitude: document.getElementById('f_latitude').value,
             longitude: document.getElementById('f_longitude').value
@@ -787,7 +788,7 @@
         if (res.ok) {
           showToast('Updated successfully');
           closeModal();
-          loadUser();
+          loadDevice();
         } else {
           const err = await res.json();
           showToast(err.error || 'Update failed', 'error');
@@ -798,10 +799,10 @@
     };
 
     // ==================== DELETE ====================
-    async function deleteUser() {
-      if (!confirm('Are you sure you want to delete this user?')) return;
+    async function deleteDevice() {
+      if (!confirm('Are you sure you want to delete this device?')) return;
       try {
-        const res = await fetch(`/users/${currentUser.id}`, {
+        const res = await fetch(`/devices/${currentDevice.id}`, {
           method: 'DELETE',
           headers: authHeaders
         });
@@ -816,7 +817,7 @@
       }
     }
 
-    loadUser();
+    loadDevice();
   </script>
 </body>
 </html>
