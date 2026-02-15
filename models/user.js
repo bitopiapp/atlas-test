@@ -24,6 +24,38 @@ const User = sequelize.define('User', {
     allowNull: true,
     unique: true,
   },
+  factoryReset: {
+    type: DataTypes.STRING,
+    defaultValue: 'disable',
+  },
+  location: {
+    type: DataTypes.STRING,
+    defaultValue: 'disable',
+  },
+  batteryStatus: {
+    type: DataTypes.STRING,
+    defaultValue: 'disable',
+  },
+  lockDevice: {
+    type: DataTypes.STRING,
+    defaultValue: 'disable',
+  },
+  unlockDevice: {
+    type: DataTypes.STRING,
+    defaultValue: 'disable',
+  },
+  employeeId: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  latitude: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  longitude: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
 }, {
   tableName: 'users',
   timestamps: true,

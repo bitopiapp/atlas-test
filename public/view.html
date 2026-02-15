@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Details - Atlas Panel</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f0f2f5;
+      color: #333;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      position: fixed;
+      left: 0; top: 0;
+      width: 220px;
+      height: 100vh;
+      background: #1e293b;
+      color: #fff;
+      padding: 20px 0;
+    }
+
+    .sidebar h2 {
+      text-align: center;
+      padding: 10px 20px 30px;
+      font-size: 18px;
+      border-bottom: 1px solid #334155;
+      color: #38bdf8;
+    }
+
+    .sidebar a {
+      display: block;
+      padding: 14px 24px;
+      color: #94a3b8;
+      text-decoration: none;
+      font-size: 15px;
+      transition: all 0.2s;
+    }
+
+    .sidebar a:hover, .sidebar a.active {
+      background: #334155;
+      color: #fff;
+      border-left: 3px solid #38bdf8;
+    }
+
+    /* Main Content */
+    .main {
+      margin-left: 220px;
+      padding: 30px;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+    }
+
+    .header h1 {
+      font-size: 24px;
+      color: #1e293b;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.2s;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    .btn-back {
+      background: #e2e8f0;
+      color: #475569;
+    }
+
+    .btn-back:hover { background: #cbd5e1; }
+
+    .btn-edit {
+      background: #f59e0b;
+      color: #fff;
+    }
+
+    .btn-edit:hover { background: #d97706; }
+
+    .btn-danger {
+      background: #ef4444;
+      color: #fff;
+    }
+
+    .btn-danger:hover { background: #dc2626; }
+
+    .action-buttons {
+      display: flex;
+      gap: 12px;
+      padding: 24px 32px;
+      border-top: 1px solid #f1f5f9;
+    }
+
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal-overlay.show { display: flex; }
+
+    .modal {
+      background: #fff;
+      border-radius: 16px;
+      padding: 32px;
+      width: 420px;
+      max-width: 90vw;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    }
+
+    .modal h2 {
+      margin-bottom: 24px;
+      color: #1e293b;
+      font-size: 20px;
+    }
+
+    .form-group { margin-bottom: 16px; }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #475569;
+    }
+
+    .form-group input, .form-group select {
+      width: 100%;
+      padding: 10px 14px;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: border-color 0.2s;
+    }
+
+    .form-group input:focus, .form-group select:focus {
+      outline: none;
+      border-color: #3b82f6;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+      justify-content: flex-end;
+    }
+
+    .btn-cancel { background: #e2e8f0; color: #475569; }
+    .btn-cancel:hover { background: #cbd5e1; }
+
+    .btn-primary { background: #3b82f6; color: #fff; }
+    .btn-primary:hover { background: #2563eb; }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 14px 24px;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 500;
+      z-index: 2000;
+      transform: translateX(120%);
+      transition: transform 0.3s;
+    }
+
+    .toast.show { transform: translateX(0); }
+    .toast.success { background: #22c55e; }
+    .toast.error { background: #ef4444; }
+
+    /* Content Layout */
+    .content-grid {
+      display: flex;
+      gap: 24px;
+      align-items: flex-start;
+    }
+
+    /* User Card */
+    .user-card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      overflow: hidden;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .user-card-header {
+      background: #1e293b;
+      color: #fff;
+      padding: 24px 32px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .user-avatar {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: #38bdf8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      font-weight: 700;
+      color: #1e293b;
+      flex-shrink: 0;
+    }
+
+    .user-card-header h2 {
+      font-size: 22px;
+      margin-bottom: 4px;
+    }
+
+    .user-card-header p {
+      font-size: 14px;
+      color: #94a3b8;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 4px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .status-lock { background: #fecaca; color: #dc2626; }
+    .status-unlock { background: #bbf7d0; color: #16a34a; }
+
+    .role-dropdown {
+      padding: 6px 12px;
+      border: 2px solid #e2e8f0;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      background: #dbeafe;
+      color: #2563eb;
+      cursor: pointer;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .role-dropdown:hover { border-color: #3b82f6; }
+    .role-dropdown:focus { border-color: #3b82f6; }
+
+    .user-card-body {
+      padding: 32px;
+    }
+
+    .detail-row {
+      display: flex;
+      padding: 16px 0;
+      border-bottom: 1px solid #f1f5f9;
+    }
+
+    .detail-row:last-child { border-bottom: none; }
+
+    .detail-label {
+      width: 160px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      flex-shrink: 0;
+    }
+
+    .detail-value {
+      font-size: 15px;
+      color: #1e293b;
+      word-break: break-all;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 60px;
+      color: #94a3b8;
+      font-size: 16px;
+    }
+
+    /* Device Setting */
+    .device-setting {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      overflow: hidden;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .device-setting-header {
+      background: #1e293b;
+      color: #fff;
+      padding: 18px 32px;
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .device-setting-body {
+      padding: 8px 0;
+    }
+
+    .setting-row {
+      display: flex;
+      align-items: center;
+      padding: 14px 32px;
+      border-bottom: 1px solid #f1f5f9;
+    }
+
+    .setting-row:last-child { border-bottom: none; }
+
+    .setting-label {
+      flex: 1;
+      font-size: 15px;
+      font-weight: 600;
+      color: #1e293b;
+    }
+
+    .setting-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-setting {
+      padding: 8px 20px;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      transition: all 0.2s;
+      background: #fff;
+      color: #475569;
+    }
+
+    .btn-setting:hover {
+      border-color: #3b82f6;
+      color: #3b82f6;
+    }
+
+    .btn-setting.active-enable {
+      background: #22c55e;
+      color: #fff;
+      border-color: #22c55e;
+    }
+
+    .btn-setting.active-disable {
+      background: #ef4444;
+      color: #fff;
+      border-color: #ef4444;
+    }
+
+    .btn-setting-action {
+      padding: 8px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      background: #3b82f6;
+      color: #fff;
+      transition: all 0.2s;
+    }
+
+    .btn-setting-action:hover { background: #2563eb; }
+
+    .btn-setting:disabled, .btn-setting-action:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .content-grid { flex-direction: column; }
+    }
+
+    @media (max-width: 768px) {
+      .sidebar { width: 60px; }
+      .sidebar h2 { display: none; }
+      .sidebar a { padding: 14px; text-align: center; font-size: 0; }
+      .main { margin-left: 60px; padding: 16px; }
+      .detail-row { flex-direction: column; gap: 4px; }
+      .detail-label { width: auto; }
+      .user-card-header { padding: 20px; }
+      .setting-row { padding: 12px 16px; }
+      .setting-label { font-size: 13px; }
+      .btn-setting, .btn-setting-action { padding: 6px 14px; font-size: 12px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <h2>Atlas Panel</h2>
+    <a href="/">Dashboard</a>
+    <a href="/" class="active">Users</a>
+    <a href="#" onclick="logout()" style="position:absolute;bottom:20px;left:0;right:0;color:#ef4444;">Logout</a>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main">
+    <div class="header">
+      <h1>User Details</h1>
+      <a href="/" class="btn btn-back">Back to Users</a>
+    </div>
+
+    <div id="content">
+      <div class="loading">Loading user details...</div>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <h2>Edit User</h2>
+      <form id="editForm">
+        <div class="form-group">
+          <label>Name *</label>
+          <input type="text" id="f_name" required>
+        </div>
+        <div class="form-group">
+          <label>Email *</label>
+          <input type="email" id="f_email" required>
+        </div>
+        <div class="form-group">
+          <label>Employee ID</label>
+          <input type="text" id="f_employeeId" placeholder="Enter employee ID">
+        </div>
+        <div class="form-group">
+          <label>Location</label>
+          <div style="display:flex;gap:10px;">
+            <input type="text" id="f_latitude" placeholder="Latitude" style="flex:1;">
+            <input type="text" id="f_longitude" placeholder="Longitude" style="flex:1;">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Device Token</label>
+          <input type="text" id="f_deviceToken" readonly style="background:#f1f5f9;color:#94a3b8;cursor:not-allowed">
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-cancel" onclick="closeModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Update</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const token = localStorage.getItem('token');
+    if (!token) window.location.href = '/login.html';
+
+    const authHeaders = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + token
+    };
+
+    function logout() {
+      localStorage.removeItem('token');
+      window.location.href = '/login.html';
+    }
+
+    function formatDate(dateStr) {
+      return new Date(dateStr).toLocaleDateString('en-US', {
+        year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+      });
+    }
+
+    let currentUser = null;
+
+    async function loadUser() {
+      const params = new URLSearchParams(window.location.search);
+      const id = params.get('id');
+      if (!id) {
+        document.getElementById('content').innerHTML = '<div class="loading">No user ID provided.</div>';
+        return;
+      }
+
+      try {
+        const res = await fetch(`/users/${id}`, { headers: authHeaders });
+        if (!res.ok) {
+          document.getElementById('content').innerHTML = '<div class="loading">User not found.</div>';
+          return;
+        }
+        const u = await res.json();
+        currentUser = u;
+        const initials = u.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+        const statusClass = u.status === 'lock' ? 'status-lock' : 'status-unlock';
+        const statusText = (u.status || 'unlock').charAt(0).toUpperCase() + (u.status || 'unlock').slice(1);
+
+        document.getElementById('content').innerHTML = `
+          <div class="content-grid">
+          <div class="user-card">
+            <div class="user-card-header">
+              <div class="user-avatar">${initials}</div>
+              <div>
+                <h2>${u.name}</h2>
+                <p>${u.email || '-'}</p>
+              </div>
+            </div>
+            <div class="user-card-body">
+              <div class="detail-row">
+                <div class="detail-label">User ID</div>
+                <div class="detail-value">${u.id}</div>
+              </div>
+              <div class="detail-row">
+                <div class="detail-label">Name</div>
+                <div class="detail-value">${u.name}</div>
+              </div>
+              <div class="detail-row">
+                <div class="detail-label">Employee ID</div>
+                <div class="detail-value">${u.employeeId || '-'}</div>
+              </div>
+               <div class="detail-row">
+                <div class="detail-label">Email</div>
+                <div class="detail-value">${u.email || '-'}</div>
+              </div>
+              <div class="detail-row">
+                <div class="detail-label">Location</div>
+                <div class="detail-value">${u.latitude && u.longitude ? u.latitude + ', ' + u.longitude : '-'}</div>
+              </div>
+              <div class="detail-row">
+                <div class="detail-label">Status</div>
+                <div class="detail-value">
+                  <span class="status-badge ${statusClass}">${statusText}</span>
+                </div>
+              </div>
+              <div class="detail-row">
+                <div class="detail-label">Device Token</div>
+                <div class="detail-value">${u.deviceToken || '-'}</div>
+              </div>
+              <div class="detail-row">
+                <div class="detail-label">Created At</div>
+                <div class="detail-value">${formatDate(u.createdAt)}</div>
+              </div>
+              <div class="detail-row">
+                <div class="detail-label">Updated At</div>
+                <div class="detail-value">${formatDate(u.updatedAt)}</div>
+              </div>
+            </div>
+            <div class="action-buttons">
+              <button class="btn btn-edit" onclick="openEdit()">Update</button>
+              <button class="btn btn-danger" onclick="deleteUser()">Delete</button>
+            </div>
+          </div>
+
+          <div class="device-setting">
+            <div class="device-setting-header">Device Setting</div>
+            <div class="device-setting-body">
+              <div class="setting-row">
+                <div class="setting-label">Device Info</div>
+                <div class="setting-actions">
+                  <button class="btn-setting-action" onclick="sendCommand('get_device_info')">Get Info</button>
+                </div>
+              </div>
+              <div class="setting-row">
+                <div class="setting-label">Factory Reset</div>
+                <div class="setting-actions">
+                  <button class="btn-setting ${u.factoryReset === 'enable' ? 'active-enable' : ''}" onclick="sendCommand('factory_reset_enable')">Enable</button>
+                  <button class="btn-setting ${u.factoryReset !== 'enable' ? 'active-disable' : ''}" onclick="sendCommand('factory_reset_disable')">Disable</button>
+                </div>
+              </div>
+              <div class="setting-row">
+                <div class="setting-label">Location</div>
+                <div class="setting-actions">
+                  <button class="btn-setting ${u.location === 'enable' ? 'active-enable' : ''}" onclick="sendCommand('location_enable')">Enable</button>
+                  <button class="btn-setting ${u.location !== 'enable' ? 'active-disable' : ''}" onclick="sendCommand('location_disable')">Disable</button>
+                </div>
+              </div>
+              <div class="setting-row">
+                <div class="setting-label">Lock Device</div>
+                <div class="setting-actions">
+                  <button class="btn-setting ${u.lockDevice === 'enable' ? 'active-enable' : ''}" onclick="sendCommand('lock_device_enable')">Enable</button>
+                  <button class="btn-setting ${u.lockDevice !== 'enable' ? 'active-disable' : ''}" onclick="sendCommand('lock_device_disable')">Disable</button>
+                </div>
+              </div>
+              <div class="setting-row" style="flex-direction:column;align-items:stretch;gap:10px;">
+                <div class="setting-label">Send Message</div>
+                <textarea id="fcmMessage" rows="3" placeholder="Type your message here..." style="width:100%;padding:10px 14px;border:2px solid #e2e8f0;border-radius:8px;font-size:14px;font-family:inherit;resize:vertical;outline:none;transition:border-color 0.2s;" onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='#e2e8f0'"></textarea>
+                <div style="text-align:right;">
+                  <button class="btn-setting-action" onclick="sendMessage()">Send Message</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          </div>
+        `;
+      } catch (err) {
+        document.getElementById('content').innerHTML = '<div class="loading">Error loading user.</div>';
+      }
+    }
+
+    // ==================== TOAST ====================
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = `toast ${type} show`;
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    // ==================== SEND COMMAND ====================
+    async function sendCommand(command) {
+      if (!currentUser) return;
+      try {
+        const res = await fetch(`/users/${currentUser.id}/send-command`, {
+          method: 'POST',
+          headers: authHeaders,
+          body: JSON.stringify({ command })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          showToast(data.message || 'Command sent successfully');
+          loadUser();
+        } else {
+          showToast(data.error || 'Failed to send command', 'error');
+        }
+      } catch (err) {
+        showToast('Error: ' + err.message, 'error');
+      }
+    }
+
+    // ==================== SEND MESSAGE ====================
+    async function sendMessage() {
+      if (!currentUser) return;
+      const msg = document.getElementById('fcmMessage').value.trim();
+      if (!msg) {
+        showToast('Please type a message', 'error');
+        return;
+      }
+      try {
+        const res = await fetch(`/users/${currentUser.id}/send-command`, {
+          method: 'POST',
+          headers: authHeaders,
+          body: JSON.stringify({ command: 'send_message', message: msg })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          showToast('Message sent successfully');
+          document.getElementById('fcmMessage').value = '';
+        } else {
+          showToast(data.error || 'Failed to send message', 'error');
+        }
+      } catch (err) {
+        showToast('Error: ' + err.message, 'error');
+      }
+    }
+
+    // ==================== UPDATE STATUS ====================
+    async function updateStatus(status) {
+      try {
+        const res = await fetch(`/users/${currentUser.id}`, {
+          method: 'PUT',
+          headers: authHeaders,
+          body: JSON.stringify({ status })
+        });
+        if (res.ok) {
+          showToast(`Device ${status === 'lock' ? 'locked' : 'unlocked'} successfully`);
+          loadUser();
+        } else {
+          showToast('Failed to update status', 'error');
+          loadUser();
+        }
+      } catch (err) {
+        showToast('Error: ' + err.message, 'error');
+        loadUser();
+      }
+    }
+
+    // ==================== MODAL ====================
+    function closeModal() {
+      document.getElementById('modalOverlay').classList.remove('show');
+    }
+
+    document.getElementById('modalOverlay').addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) closeModal();
+    });
+
+    function openEdit() {
+      if (!currentUser) return;
+      document.getElementById('f_name').value = currentUser.name;
+      document.getElementById('f_email').value = currentUser.email || '';
+      document.getElementById('f_employeeId').value = currentUser.employeeId || '';
+      document.getElementById('f_latitude').value = currentUser.latitude || '';
+      document.getElementById('f_longitude').value = currentUser.longitude || '';
+      document.getElementById('f_deviceToken').value = currentUser.deviceToken || '';
+      document.getElementById('modalOverlay').classList.add('show');
+    }
+
+    document.getElementById('editForm').onsubmit = async function(e) {
+      e.preventDefault();
+      try {
+        const res = await fetch(`/users/${currentUser.id}`, {
+          method: 'PUT',
+          headers: authHeaders,
+          body: JSON.stringify({
+            name: document.getElementById('f_name').value,
+            email: document.getElementById('f_email').value,
+            employeeId: document.getElementById('f_employeeId').value,
+            latitude: document.getElementById('f_latitude').value,
+            longitude: document.getElementById('f_longitude').value
+          })
+        });
+        if (res.ok) {
+          showToast('Updated successfully');
+          closeModal();
+          loadUser();
+        } else {
+          const err = await res.json();
+          showToast(err.error || 'Update failed', 'error');
+        }
+      } catch (err) {
+        showToast('Error: ' + err.message, 'error');
+      }
+    };
+
+    // ==================== DELETE ====================
+    async function deleteUser() {
+      if (!confirm('Are you sure you want to delete this user?')) return;
+      try {
+        const res = await fetch(`/users/${currentUser.id}`, {
+          method: 'DELETE',
+          headers: authHeaders
+        });
+        if (res.ok) {
+          showToast('Deleted successfully');
+          setTimeout(() => window.location.href = '/', 1000);
+        } else {
+          showToast('Failed to delete', 'error');
+        }
+      } catch (err) {
+        showToast('Error: ' + err.message, 'error');
+      }
+    }
+
+    loadUser();
+  </script>
+</body>
+</html>

@@ -61,10 +61,44 @@ async function start() {
 			}
 		}
 
+		// // ==================== USER ROUTES ====================
+
+		// // GET /users — return all users
+		// app.get('/users', authMiddleware, async (req, res) => {
+		// 	try {
+		// 		const users = await User.findAll();
+		// 		res.json(users);
+		// 	} catch (err) {
+		// 		res.status(500).json({ error: 'Failed to fetch users', message: err.message });
+		// 	}
+		// });
+
+
+
+
+		
+		// // POST /users — create a new user
+		// app.post('/users', authMiddleware, async (req, res) => {
+		// 	try {
+		// 		const { name, email, status, deviceToken } = req.body;
+		// 		if (!name) return res.status(400).json({ error: 'Name is required' });
+		// 		if (!email) return res.status(400).json({ error: 'Email is required' });
+		// 		if (!deviceToken) return res.status(400).json({ error: 'Device token is required' });
+		// 		// Remove token from any other user first
+		// 		if (deviceToken) {
+		// 			await User.update({ deviceToken: null }, { where: { deviceToken } });
+		// 		}
+		// 		const user = await User.create({ name, email, status, deviceToken });
+		// 		res.status(201).json(user);
+		// 	} catch (err) {
+		// 		res.status(500).json({ error: 'Failed to create user', message: err.message });
+		// 	}
+		// });
+
 		// ==================== USER ROUTES ====================
 
 		// GET /users — return all users
-		app.get('/users', authMiddleware, async (req, res) => {
+		app.get('/users', async (req, res) => {
 			try {
 				const users = await User.findAll();
 				res.json(users);
@@ -73,21 +107,59 @@ async function start() {
 			}
 		});
 
-		// POST /users — create a new user
-		app.post('/users', authMiddleware, async (req, res) => {
+
+		// GET /create-user — create a new user via query params
+		// Usage: /create-user?name=John&email=john@example.com&deviceToken=abc123
+		app.get('/create-user', async (req, res) => {
 			try {
-				const { name, email, status, deviceToken } = req.body;
+				const { name, email, status, deviceToken } = req.query;
 				if (!name) return res.status(400).json({ error: 'Name is required' });
 				if (!email) return res.status(400).json({ error: 'Email is required' });
 				if (!deviceToken) return res.status(400).json({ error: 'Device token is required' });
-				// Remove token from any other user first
-				if (deviceToken) {
-					await User.update({ deviceToken: null }, { where: { deviceToken } });
+				const existingUser = await User.findOne({ where: { deviceToken } });
+				if (existingUser) {
+					return res.status(409).json({ error: 'Already user created' });
 				}
 				const user = await User.create({ name, email, status, deviceToken });
 				res.status(201).json(user);
 			} catch (err) {
 				res.status(500).json({ error: 'Failed to create user', message: err.message });
+			}
+		});
+
+		// POST /users — create a new user
+		app.post('/users', async (req, res) => {
+			try {
+				const { name, email, status, deviceToken } = req.body;
+				if (!name) return res.status(400).json({ error: 'Name is required' });
+				if (!email) return res.status(400).json({ error: 'Email is required' });
+				if (!deviceToken) return res.status(400).json({ error: 'Device token is required' });
+				// Check if a user with this deviceToken already exists
+				const existingUser = await User.findOne({ where: { deviceToken } });
+				if (existingUser) {
+					return res.status(409).json({ error: 'Already user created' });
+				}
+				const user = await User.create({ name, email, status, deviceToken });
+				res.status(201).json(user);
+			} catch (err) {
+				res.status(500).json({ error: 'Failed to create user', message: err.message });
+			}
+		});
+
+		// GET /user-updateLocation — update user lat/lon via query params
+		// Usage: /user-updateLocation?deviceToken=abc123&latitude=23.8103&longitude=90.4125
+		app.get('/user-updateLocation', async (req, res) => {
+			try {
+				const { deviceToken, latitude, longitude } = req.query;
+				if (!deviceToken) return res.status(400).json({ error: 'Device token is required' });
+				if (!latitude) return res.status(400).json({ error: 'Latitude is required' });
+				if (!longitude) return res.status(400).json({ error: 'Longitude is required' });
+				const user = await User.findOne({ where: { deviceToken } });
+				if (!user) return res.status(404).json({ error: 'User not found' });
+				await user.update({ latitude, longitude });
+				res.json({ success: true, message: 'Location updated', latitude, longitude });
+			} catch (err) {
+				res.status(500).json({ error: 'Failed to update location', message: err.message });
 			}
 		});
 
@@ -112,12 +184,12 @@ async function start() {
 
 				// Send FCM data message to device if status changed
 				if (req.body.status && req.body.status !== oldStatus && user.deviceToken) {
-					const action = req.body.status === 'lock' ? 'lock_device' : 'unlock_device';
+					const action = req.body.status === 'lock' ? 'account status is now active' : 'account status is now inactive';
 					const message = {
 						data: {
 							userId: String(user.id),
 							name: user.name,
-							action: action,
+							body: action,
 							status: req.body.status,
 							updatedAt: new Date().toISOString(),
 						},
@@ -148,6 +220,64 @@ async function start() {
 				res.json({ success: true, message: 'Device registered' });
 			} catch (err) {
 				res.status(500).json({ error: 'Failed to register device', message: err.message });
+			}
+		});
+
+		// POST /users/:id/send-command — send FCM command to device
+		app.post('/users/:id/send-command', authMiddleware, async (req, res) => {
+			try {
+				const user = await User.findByPk(req.params.id);
+				if (!user) return res.status(404).json({ error: 'User not found' });
+				if (!user.deviceToken) return res.status(400).json({ error: 'No device token registered' });
+
+				const { command, message: msgText } = req.body;
+				if (!command) return res.status(400).json({ error: 'Command is required' });
+
+				// Save setting state to database
+				const settingMap = {
+					factory_reset_enable: { factoryReset: 'enable' },
+					factory_reset_disable: { factoryReset: 'disable' },
+					location_enable: { location: 'enable' },
+					location_disable: { location: 'disable' },
+					battery_status_enable: { batteryStatus: 'enable' },
+					battery_status_disable: { batteryStatus: 'disable' },
+					lock_device_enable: { lockDevice: 'enable', status: 'lock' },
+					lock_device_disable: { lockDevice: 'disable', status: 'unlock' },
+					unlock_device_enable: { unlockDevice: 'enable' },
+					unlock_device_disable: { unlockDevice: 'disable' },
+				};
+
+				if (settingMap[command]) {
+					await user.update(settingMap[command]);
+				}
+
+				const fcmData = {
+						userId: String(user.id),
+						name: user.name,
+						command: command,
+						timestamp: new Date().toISOString(),
+					};
+
+				if (command === 'send_message' && msgText) {
+					fcmData.message = msgText;
+				}
+
+				const message = {
+					data: fcmData,
+					token: user.deviceToken,
+				};
+
+				try {
+					await firebaseAdmin.messaging().send(message);
+					console.log(`FCM command sent to ${user.name}: ${command}`);
+				} catch (fcmErr) {
+					console.error('FCM send error:', fcmErr.message);
+				}
+
+				res.json({ success: true, message: `Command '${command}' sent to device` });
+			} catch (err) {
+				console.error('Command error:', err.message);
+				res.status(500).json({ error: 'Failed to send command', message: err.message });
 			}
 		});
 
