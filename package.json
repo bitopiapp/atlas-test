@@ -1,19 +1,25 @@
 {
   "name": "atlas-test",
   "version": "1.0.0",
-  "description": "",
+  "description": "Node.js REST API with MySQL/SQLite",
   "main": "index.js",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js",
+    "dev": "node index.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "dotenv": "^17.2.4",
-    "express": "^5.2.1",
-    "mongoose": "^9.1.6",
-    "mongodb-memory-server": "^8.12.1"
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "firebase-admin": "^13.6.1",
+    "mysql2": "^3.9.7",
+    "sequelize": "^6.37.3",
+    "sqlite3": "^5.1.7"
   }
 }
