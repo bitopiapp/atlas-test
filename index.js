@@ -61,40 +61,6 @@ async function start() {
 			}
 		}
 
-		// // ==================== USER ROUTES ====================
-
-		// // GET /users — return all users
-		// app.get('/users', authMiddleware, async (req, res) => {
-		// 	try {
-		// 		const users = await User.findAll();
-		// 		res.json(users);
-		// 	} catch (err) {
-		// 		res.status(500).json({ error: 'Failed to fetch users', message: err.message });
-		// 	}
-		// });
-
-
-
-
-		
-		// // POST /users — create a new user
-		// app.post('/users', authMiddleware, async (req, res) => {
-		// 	try {
-		// 		const { name, email, status, deviceToken } = req.body;
-		// 		if (!name) return res.status(400).json({ error: 'Name is required' });
-		// 		if (!email) return res.status(400).json({ error: 'Email is required' });
-		// 		if (!deviceToken) return res.status(400).json({ error: 'Device token is required' });
-		// 		// Remove token from any other user first
-		// 		if (deviceToken) {
-		// 			await User.update({ deviceToken: null }, { where: { deviceToken } });
-		// 		}
-		// 		const user = await User.create({ name, email, status, deviceToken });
-		// 		res.status(201).json(user);
-		// 	} catch (err) {
-		// 		res.status(500).json({ error: 'Failed to create user', message: err.message });
-		// 	}
-		// });
-
 		// ==================== USER ROUTES ====================
 
 		// GET /users — return all users
@@ -163,6 +129,21 @@ async function start() {
 			}
 		});
 
+		// GET /user-updateDeviceInfo — update device info via query params
+		// Usage: /user-updateDeviceInfo?deviceToken=abc123&brand=Samsung&model=Galaxy S21&androidVersion=13&...
+		app.get('/user-updateDeviceInfo', async (req, res) => {
+			try {
+				const { deviceToken, ...info } = req.query;
+				if (!deviceToken) return res.status(400).json({ error: 'Device token is required' });
+				const user = await User.findOne({ where: { deviceToken } });
+				if (!user) return res.status(404).json({ error: 'User not found' });
+				await user.update({ deviceInfo: JSON.stringify(info) });
+				res.json({ success: true, message: 'Device info updated' });
+			} catch (err) {
+				res.status(500).json({ error: 'Failed to update device info', message: err.message });
+			}
+		});
+
 		// GET /users/:id — get user by id
 		app.get('/users/:id', authMiddleware, async (req, res) => {
 			try {
@@ -184,7 +165,7 @@ async function start() {
 
 				// Send FCM data message to device if status changed
 				if (req.body.status && req.body.status !== oldStatus && user.deviceToken) {
-					const action = req.body.status === 'lock' ? 'account status is now active' : 'account status is now inactive';
+					const action = req.body.status === 'lock' ? 'Lock Device' : 'Unlock Device';
 					const message = {
 						data: {
 							userId: String(user.id),
@@ -235,27 +216,44 @@ async function start() {
 
 				// Save setting state to database
 				const settingMap = {
-					factory_reset_enable: { factoryReset: 'enable' },
-					factory_reset_disable: { factoryReset: 'disable' },
-					location_enable: { location: 'enable' },
-					location_disable: { location: 'disable' },
-					battery_status_enable: { batteryStatus: 'enable' },
-					battery_status_disable: { batteryStatus: 'disable' },
+					factory_reset_enable: { factoryReset: 'enable', status: 'factory_reset_enable' },
+					factory_reset_disable: { factoryReset: 'disable', status: 'factory_reset_disable' },
+					location_enable: { location: 'enable', status: 'location_enable' },
+					location_disable: { location: 'disable', status: 'location_disable' },
+					battery_status_enable: { batteryStatus: 'enable', status: 'battery_status_enable' },
+					battery_status_disable: { batteryStatus: 'disable', status: 'battery_status_disable' },
 					lock_device_enable: { lockDevice: 'enable', status: 'lock' },
 					lock_device_disable: { lockDevice: 'disable', status: 'unlock' },
-					unlock_device_enable: { unlockDevice: 'enable' },
-					unlock_device_disable: { unlockDevice: 'disable' },
 				};
 
 				if (settingMap[command]) {
 					await user.update(settingMap[command]);
 				}
 
-				const fcmData = {
-						userId: String(user.id),
-						name: user.name,
-						command: command,
-						timestamp: new Date().toISOString(),
+				const fcmData = { 
+							userId: String(user.id),
+							name: user.name,
+							body: 
+							command == 'factory_reset_enable' ? `Factory Reset Enable` 
+							:
+							command == 'factory_reset_disable' ? `Factory Reset Disable` 
+							:
+							command == 'location_enable' ? `Location Enable` 
+							:
+							command == 'location_disable' ? `Location Disable` 
+							:
+							command == 'battery_status_enable' ? `Battery Status Enable` 
+							:
+							command == 'battery_status_disable' ? `Battery Status Disable` 
+							:
+							command == 'lock_device_enable' ? `Lock Device` 
+							:
+							command == 'lock_device_disable' ? `Unlock Device` 
+							:
+							command == 'send_message' ? `${msgText}` 
+							: command,
+							status: user.status,
+							updatedAt: new Date().toISOString(),
 					};
 
 				if (command === 'send_message' && msgText) {

@@ -4,6 +4,9 @@
 # Firebase
 firebase-service-account.json
 
+# Database
+database.sqlite
+
 # Dependencies
 node_modules/
 

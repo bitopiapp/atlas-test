@@ -471,6 +471,17 @@
     </div>
   </div>
 
+  <!-- Device Info Modal -->
+  <div class="modal-overlay" id="deviceInfoOverlay">
+    <div class="modal">
+      <h2>Device Info</h2>
+      <div id="deviceInfoContent" style="max-height:400px;overflow-y:auto;"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-cancel" onclick="document.getElementById('deviceInfoOverlay').classList.remove('show')">Close</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast -->
   <div class="toast" id="toast"></div>
 
@@ -495,6 +506,17 @@
     }
 
     let currentUser = null;
+
+    function buildDeviceInfoRows(deviceInfo) {
+      if (!deviceInfo) return '';
+      try {
+        const info = JSON.parse(deviceInfo);
+        return Object.entries(info).map(function([key, value]) {
+          const label = key.replace(/([A-Z])/g, ' $1').replace(/^./, function(s) { return s.toUpperCase(); });
+          return '<div class="detail-row"><div class="detail-label">' + label + '</div><div class="detail-value">' + (value || '-') + '</div></div>';
+        }).join('');
+      } catch(e) { return ''; }
+    }
 
     async function loadUser() {
       const params = new URLSearchParams(window.location.search);
@@ -543,20 +565,27 @@
                 <div class="detail-label">Email</div>
                 <div class="detail-value">${u.email || '-'}</div>
               </div>
+              
+              ${buildDeviceInfoRows(u.deviceInfo)}
               <div class="detail-row">
                 <div class="detail-label">Location</div>
                 <div class="detail-value">${u.latitude && u.longitude ? u.latitude + ', ' + u.longitude : '-'}</div>
               </div>
+
+
               <div class="detail-row">
                 <div class="detail-label">Status</div>
                 <div class="detail-value">
                   <span class="status-badge ${statusClass}">${statusText}</span>
                 </div>
               </div>
+
               <div class="detail-row">
                 <div class="detail-label">Device Token</div>
                 <div class="detail-value">${u.deviceToken || '-'}</div>
               </div>
+
+
               <div class="detail-row">
                 <div class="detail-label">Created At</div>
                 <div class="detail-value">${formatDate(u.createdAt)}</div>
@@ -579,27 +608,28 @@
                 <div class="setting-label">Device Info</div>
                 <div class="setting-actions">
                   <button class="btn-setting-action" onclick="sendCommand('get_device_info')">Get Info</button>
+                  <button class="btn-setting-action" onclick="showDeviceInfo()">Show Info</button>
                 </div>
               </div>
               <div class="setting-row">
                 <div class="setting-label">Factory Reset</div>
                 <div class="setting-actions">
-                  <button class="btn-setting ${u.factoryReset === 'enable' ? 'active-enable' : ''}" onclick="sendCommand('factory_reset_enable')">Enable</button>
-                  <button class="btn-setting ${u.factoryReset !== 'enable' ? 'active-disable' : ''}" onclick="sendCommand('factory_reset_disable')">Disable</button>
+                  <button class="btn-setting ${u.factoryReset === 'enable' ? 'active-enable' : ''}" onclick="sendCommand('factory_reset_enable')">Active</button>
+                  <button class="btn-setting ${u.factoryReset !== 'enable' ? 'active-disable' : ''}" onclick="sendCommand('factory_reset_disable')">Inactive</button>
                 </div>
               </div>
               <div class="setting-row">
                 <div class="setting-label">Location</div>
                 <div class="setting-actions">
-                  <button class="btn-setting ${u.location === 'enable' ? 'active-enable' : ''}" onclick="sendCommand('location_enable')">Enable</button>
-                  <button class="btn-setting ${u.location !== 'enable' ? 'active-disable' : ''}" onclick="sendCommand('location_disable')">Disable</button>
+                  <button class="btn-setting ${u.location === 'enable' ? 'active-enable' : ''}" onclick="sendCommand('location_enable')">Active</button>
+                  <button class="btn-setting ${u.location !== 'enable' ? 'active-disable' : ''}" onclick="sendCommand('location_disable')">Inactive</button>
                 </div>
               </div>
               <div class="setting-row">
                 <div class="setting-label">Lock Device</div>
                 <div class="setting-actions">
-                  <button class="btn-setting ${u.lockDevice === 'enable' ? 'active-enable' : ''}" onclick="sendCommand('lock_device_enable')">Enable</button>
-                  <button class="btn-setting ${u.lockDevice !== 'enable' ? 'active-disable' : ''}" onclick="sendCommand('lock_device_disable')">Disable</button>
+                            <button class="btn-setting ${u.lockDevice === 'enable' ? 'active-enable' : ''}" onclick="sendCommand('lock_device_enable')">Lock</button>
+                  <button class="btn-setting ${u.lockDevice !== 'enable' ? 'active-disable' : ''}" onclick="sendCommand('lock_device_disable')">Unlock</button>
                 </div>
               </div>
               <div class="setting-row" style="flex-direction:column;align-items:stretch;gap:10px;">
@@ -625,6 +655,32 @@
       toast.className = `toast ${type} show`;
       setTimeout(() => toast.classList.remove('show'), 3000);
     }
+
+    // ==================== SHOW DEVICE INFO ====================
+    function showDeviceInfo() {
+      if (!currentUser) return;
+      const container = document.getElementById('deviceInfoContent');
+      if (!currentUser.deviceInfo) {
+        container.innerHTML = '<div style="text-align:center;color:#94a3b8;padding:20px;">No device info available.<br>Send "Get Info" command first.</div>';
+      } else {
+        try {
+          const info = JSON.parse(currentUser.deviceInfo);
+          container.innerHTML = Object.entries(info).map(([key, value]) => `
+            <div class="detail-row">
+              <div class="detail-label">${key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase())}</div>
+              <div class="detail-value">${value || '-'}</div>
+            </div>
+          `).join('');
+        } catch {
+          container.innerHTML = '<div style="color:#94a3b8;padding:20px;">Invalid device info data.</div>';
+        }
+      }
+      document.getElementById('deviceInfoOverlay').classList.add('show');
+    }
+
+    document.getElementById('deviceInfoOverlay').addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) e.target.classList.remove('show');
+    });
 
     // ==================== SEND COMMAND ====================
     async function sendCommand(command) {
