@@ -312,6 +312,7 @@
     <h2>Atlas Panel</h2>
     <a href="#" class="active" data-section="dashboard">Dashboard</a>
     <a href="#" data-section="users">Users</a>
+    <a href="#" onclick="logout()" style="position:absolute;bottom:20px;left:0;right:0;color:#ef4444;">Logout</a>
   </div>
 
   <!-- Main Content -->
@@ -369,6 +370,36 @@
 
   <script>
     const API = '';
+    const token = localStorage.getItem('token');
+
+    // Redirect to login if no token
+    if (!token) {
+      window.location.href = '/login.html';
+    }
+
+    // Verify token is still valid
+    fetch('/api/verify', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    }).then(res => {
+      if (!res.ok) {
+        localStorage.removeItem('token');
+        window.location.href = '/login.html';
+      }
+    }).catch(() => {
+      localStorage.removeItem('token');
+      window.location.href = '/login.html';
+    });
+
+    // Auth headers for all API calls
+    const authHeaders = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + token
+    };
+
+    function logout() {
+      localStorage.removeItem('token');
+      window.location.href = '/login.html';
+    }
 
     // ==================== NAVIGATION ====================
     document.querySelectorAll('.sidebar a').forEach(link => {
@@ -398,7 +429,7 @@
 
     // ==================== FETCH DATA ====================
     async function fetchUsers() {
-      const res = await fetch(`${API}/users`);
+      const res = await fetch(`${API}/users`, { headers: authHeaders });
       const users = await res.json();
       document.getElementById('userCount').textContent = users.length;
       window._users = users;
@@ -431,7 +462,7 @@
     async function deleteItem(type, id) {
       if (!confirm('Are you sure you want to delete this item?')) return;
       try {
-        const res = await fetch(`${API}/${type}/${id}`, { method: 'DELETE' });
+        const res = await fetch(`${API}/${type}/${id}`, { method: 'DELETE', headers: authHeaders });
         if (res.ok) {
           showToast('Deleted successfully');
           loadAll();
@@ -448,7 +479,7 @@
       try {
         const res = await fetch(`${API}/users/${id}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: authHeaders,
           body: JSON.stringify({ status })
         });
         if (res.ok) {
@@ -525,7 +556,7 @@
 
     // ==================== EDIT HELPERS ====================
     async function editUser(id) {
-      const res = await fetch(`${API}/users/${id}`);
+      const res = await fetch(`${API}/users/${id}`, { headers: authHeaders });
       const data = await res.json();
       openModal('user', data);
     }
@@ -549,7 +580,7 @@
       try {
         const res = await fetch(url, {
           method,
-          headers: { 'Content-Type': 'application/json' },
+          headers: authHeaders,
           body: JSON.stringify(body)
         });
 

@@ -4,6 +4,7 @@ const sequelize = require('./models/index');
 const User = require('./models/user');
 
 const path = require('path');
+const jwt = require('jsonwebtoken');
 const firebaseAdmin = require('./firebase');
 
 const app = express();
@@ -22,10 +23,48 @@ async function start() {
 		await sequelize.sync({ alter: true });
 		console.log('✅ Tables synced');
 
+		// ==================== LOGIN ====================
+		app.post('/api/login', (req, res) => {
+			const { username, password } = req.body;
+			if (
+				username === process.env.ADMIN_USERNAME &&
+				password === process.env.ADMIN_PASSWORD
+			) {
+				const token = jwt.sign({ role: 'admin' }, process.env.JWT_SECRET, { expiresIn: '24h' });
+				res.json({ token });
+			} else {
+				res.status(401).json({ error: 'Invalid username or password' });
+			}
+		});
+
+		// Verify token endpoint
+		app.get('/api/verify', (req, res) => {
+			const token = req.headers.authorization?.split(' ')[1];
+			if (!token) return res.status(401).json({ error: 'No token' });
+			try {
+				jwt.verify(token, process.env.JWT_SECRET);
+				res.json({ valid: true });
+			} catch {
+				res.status(401).json({ error: 'Invalid token' });
+			}
+		});
+
+		// ==================== AUTH MIDDLEWARE ====================
+		function authMiddleware(req, res, next) {
+			const token = req.headers.authorization?.split(' ')[1];
+			if (!token) return res.status(401).json({ error: 'Unauthorized' });
+			try {
+				jwt.verify(token, process.env.JWT_SECRET);
+				next();
+			} catch {
+				res.status(401).json({ error: 'Invalid token' });
+			}
+		}
+
 		// ==================== USER ROUTES ====================
 
 		// GET /users — return all users
-		app.get('/users', async (req, res) => {
+		app.get('/users', authMiddleware, async (req, res) => {
 			try {
 				const users = await User.findAll();
 				res.json(users);
@@ -35,7 +74,7 @@ async function start() {
 		});
 
 		// POST /users — create a new user
-		app.post('/users', async (req, res) => {
+		app.post('/users', authMiddleware, async (req, res) => {
 			try {
 				const { name, email, status, deviceToken } = req.body;
 				if (!name) return res.status(400).json({ error: 'Name is required' });
@@ -53,7 +92,7 @@ async function start() {
 		});
 
 		// GET /users/:id — get user by id
-		app.get('/users/:id', async (req, res) => {
+		app.get('/users/:id', authMiddleware, async (req, res) => {
 			try {
 				const user = await User.findByPk(req.params.id);
 				if (!user) return res.status(404).json({ error: 'User not found' });
@@ -64,7 +103,7 @@ async function start() {
 		});
 
 		// PUT /users/:id — update user by id
-		app.put('/users/:id', async (req, res) => {
+		app.put('/users/:id', authMiddleware, async (req, res) => {
 			try {
 				const user = await User.findByPk(req.params.id);
 				if (!user) return res.status(404).json({ error: 'User not found' });
@@ -113,7 +152,7 @@ async function start() {
 		});
 
 		// DELETE /users/:id — delete user by id
-		app.delete('/users/:id', async (req, res) => {
+		app.delete('/users/:id', authMiddleware, async (req, res) => {
 			try {
 				const user = await User.findByPk(req.params.id);
 				if (!user) return res.status(404).json({ error: 'User not found' });
