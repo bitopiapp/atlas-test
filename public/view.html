@@ -489,6 +489,9 @@
     const token = localStorage.getItem('token');
     if (!token) window.location.href = '/login.html';
 
+    const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+    const isSuperAdmin = currentUser.name === 'Super Admin' || currentUser.roll === 'Super Admin';
+
     const authHeaders = {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer ' + token
@@ -598,7 +601,7 @@
             </div>
             <div class="action-buttons">
               <button class="btn btn-edit" onclick="openEdit()">Update</button>
-              <button class="btn btn-danger" onclick="deleteDevice()">Delete</button>
+              ${isSuperAdmin ? '<button class="btn btn-danger" onclick="deleteDevice()">Delete</button>' : ''}
             </div>
           </div>
 

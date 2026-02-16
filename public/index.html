@@ -335,7 +335,7 @@
 
   <!-- Sidebar -->
   <div class="sidebar">
-    <h2>Atlas Panel</h2>
+    <h2>MDM Panel</h2>
     <a href="#" class="active" data-section="dashboard">Dashboard</a>
     <a href="#" data-section="devices">Devices</a>
     <a href="#" data-section="users">Users</a>
@@ -424,7 +424,7 @@
     const API = '';
     const token = localStorage.getItem('token');
     const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-    const isAdmin = !currentUser.roll || currentUser.roll === 'Admin';
+    const isAdmin = !currentUser.roll || currentUser.roll === 'Admin' || currentUser.roll === 'Super Admin';
 
     // Redirect to login if no token
     if (!token) {
@@ -530,7 +530,7 @@
         
           <td class="actions">
             <a href="/view.html?id=${u.id}" class="btn btn-view" style="text-decoration:none;">View</a>
-            <button class="btn btn-edit" onclick="editDevice(${u.id})">Update</button>
+     
           </td>
         </tr>
       `).join('');
@@ -644,6 +644,7 @@
           <div class="form-group">
             <label>Roll</label>
             <select id="f_uroll">
+              <option value="Super Admin" ${data && data.roll === 'Super Admin' ? 'selected' : ''}>Super Admin</option>
               <option value="Admin" ${data && data.roll === 'Admin' ? 'selected' : ''}>Admin</option>
               <option value="User" ${!data || data.roll === 'User' ? 'selected' : ''}>User</option>
             </select>

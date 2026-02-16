@@ -70,7 +70,8 @@ async function start() {
 			const token = req.headers.authorization?.split(' ')[1];
 			if (!token) return res.status(401).json({ error: 'Unauthorized' });
 			try {
-				jwt.verify(token, process.env.JWT_SECRET);
+				const decoded = jwt.verify(token, process.env.JWT_SECRET);
+				req.user = decoded;
 				next();
 			} catch {
 				res.status(401).json({ error: 'Invalid token' });
@@ -79,11 +80,16 @@ async function start() {
 
 		// ==================== DEVICE ROUTES ====================
 
-		// GET /users — return all users
-		app.get('/devices', async (req, res) => {
+		// GET /devices — return devices (filtered by user if not admin)
+		app.get('/devices', authMiddleware, async (req, res) => {
 			try {
-				const users = await Device.findAll();
-				res.json(users);
+				let where = {};
+				// If user roll is 'User', only show their devices
+				if (req.user.roll === 'User') {
+					where.adminId = String(req.user.id);
+				}
+				const devices = await Device.findAll({ where });
+				res.json(devices);
 			} catch (err) {
 				res.status(500).json({ error: 'Failed to fetch devices', message: err.message });
 			}
