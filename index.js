@@ -346,7 +346,7 @@ async function start() {
 		// POST /users — create a new user
 		app.post('/users', authMiddleware, async (req, res) => {
 			try {
-				const { name, email, phone, password, roll } = req.body;
+				const { name, employeeId, email, phone, password, roll } = req.body;
 				if (!name) return res.status(400).json({ error: 'Name is required' });
 				if (!email) return res.status(400).json({ error: 'Email is required' });
 				if (!password) return res.status(400).json({ error: 'Password is required' });
@@ -354,7 +354,7 @@ async function start() {
 				if (existingUser) {
 					return res.status(409).json({ error: 'Email already exists' });
 				}
-				const user = await User.create({ name, email, phone, password, roll });
+				const user = await User.create({ name, employeeId, email, phone, password, roll });
 				res.status(201).json(user);
 			} catch (err) {
 				res.status(500).json({ error: 'Failed to create user', message: err.message });

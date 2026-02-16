@@ -60,6 +60,10 @@ const Device = sequelize.define('Device', {
     type: DataTypes.STRING,
     allowNull: true,
   },
+  phone: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
   latitude: {
     type: DataTypes.STRING,
     allowNull: true,

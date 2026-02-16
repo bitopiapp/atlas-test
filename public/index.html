@@ -320,6 +320,32 @@
     .section { display: none; }
     .section.active { display: block; }
 
+    /* Search Box */
+    .search-box {
+      padding: 16px 24px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .search-box input {
+      width: 100%;
+      max-width: 400px;
+      padding: 10px 16px 10px 40px;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: border-color 0.2s;
+      background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%2394a3b8' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85zm-5.242.156a5 5 0 1 1 0-10 5 5 0 0 1 0 10z'/%3E%3C/svg%3E") no-repeat 14px center;
+    }
+
+    .search-box input:focus {
+      outline: none;
+      border-color: #3b82f6;
+    }
+
+    .search-box input::placeholder {
+      color: #94a3b8;
+    }
+
     /* Responsive */
     @media (max-width: 768px) {
       .sidebar { width: 60px; }
@@ -368,14 +394,16 @@
         <h1>Devices</h1>
       </div>
       <div class="table-container">
+        <div class="search-box">
+          <input type="text" id="deviceSearch" placeholder="Search by Employee ID, Name, or Phone..." oninput="filterDevices()">
+        </div>
         <table>
           <thead>
             <tr>
-              <th>ID</th>
+              <th>Employee ID</th>
               <th>Name</th>
               <th>Admin ID</th>
               <th>Status</th>
-           
               <th>Actions</th>
             </tr>
           </thead>
@@ -391,10 +419,14 @@
         <button class="btn btn-primary" onclick="openModal('userAccount')">+ Add User</button>
       </div>
       <div class="table-container">
+        <div class="search-box">
+          <input type="text" id="userSearch" placeholder="Search by Employee ID, Name, or Phone..." oninput="filterUsers()">
+        </div>
         <table>
           <thead>
             <tr>
               <th>ID</th>
+              <th>Employee ID</th>
               <th>Name</th>
               <th>Email</th>
               <th>Phone</th>
@@ -512,14 +544,18 @@
       const users = await res.json();
       document.getElementById('deviceCount').textContent = users.length;
       window._devices = users;
+      renderDevices(users);
+    }
+
+    function renderDevices(devices) {
       const tbody = document.getElementById('devicesTable');
-      if (users.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><p>No devices found</p><button class="btn btn-primary" onclick="openModal(\'user\')">Add First Device</button></div></td></tr>';
+      if (devices.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><p>No devices found</p></div></td></tr>';
         return;
       }
-      tbody.innerHTML = users.map(u => `
+      tbody.innerHTML = devices.map(u => `
         <tr>
-          <td>${u.id}</td>
+          <td>${u.employeeId || '-'}</td>
           <td><strong>${u.name}</strong></td>
           <td>${u.adminId || '-'}</td>
           <td>
@@ -527,13 +563,26 @@
               ${getRoleOptions(u.status || 'unlock')}
             </select>
           </td>
-        
           <td class="actions">
             <a href="/view.html?id=${u.id}" class="btn btn-view" style="text-decoration:none;">View</a>
-     
           </td>
         </tr>
       `).join('');
+    }
+
+    function filterDevices() {
+      const query = document.getElementById('deviceSearch').value.toLowerCase().trim();
+      if (!window._devices) return;
+      if (!query) {
+        renderDevices(window._devices);
+        return;
+      }
+      const filtered = window._devices.filter(d =>
+        (d.employeeId && d.employeeId.toLowerCase().includes(query)) ||
+        (d.name && d.name.toLowerCase().includes(query)) ||
+        (d.phone && d.phone.toLowerCase().includes(query))
+      );
+      renderDevices(filtered);
     }
 
     // ==================== UPDATE STATUS ====================
@@ -620,6 +669,10 @@
             <input type="text" id="f_uname" value="${data ? data.name : ''}" required>
           </div>
           <div class="form-group">
+            <label>Employee ID</label>
+            <input type="text" id="f_uemployeeId" value="${data ? data.employeeId || '' : ''}">
+          </div>
+          <div class="form-group">
             <label>Email *</label>
             <input type="email" id="f_uemail" value="${data ? data.email || '' : ''}" ${isEdit ? 'readonly style="background:#f1f5f9;color:#94a3b8;cursor:not-allowed"' : ''} required>
           </div>
@@ -665,14 +718,20 @@
       const res = await fetch(`${API}/users`, { headers: authHeaders });
       const users = await res.json();
       document.getElementById('userCount').textContent = users.length;
+      window._users = users;
+      renderUsers(users);
+    }
+
+    function renderUsers(users) {
       const tbody = document.getElementById('usersTable');
       if (users.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><p>No users found</p><button class="btn btn-primary" onclick="openModal(\'userAccount\')">Add First User</button></div></td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><p>No users found</p></div></td></tr>';
         return;
       }
       tbody.innerHTML = users.map(u => `
         <tr>
           <td>${u.id}</td>
+          <td>${u.employeeId || '-'}</td>
           <td><strong>${u.name}</strong></td>
           <td>${u.email || '-'}</td>
           <td>${u.phone || '-'}</td>
@@ -683,6 +742,21 @@
           </td>
         </tr>
       `).join('');
+    }
+
+    function filterUsers() {
+      const query = document.getElementById('userSearch').value.toLowerCase().trim();
+      if (!window._users) return;
+      if (!query) {
+        renderUsers(window._users);
+        return;
+      }
+      const filtered = window._users.filter(u =>
+        (u.employeeId && u.employeeId.toLowerCase().includes(query)) ||
+        (u.name && u.name.toLowerCase().includes(query)) ||
+        (u.phone && u.phone.toLowerCase().includes(query))
+      );
+      renderUsers(filtered);
     }
 
     // ==================== EDIT HELPERS ====================
@@ -722,6 +796,7 @@
         url = `${API}/users`;
         body = {
           name: document.getElementById('f_uname').value,
+          employeeId: document.getElementById('f_uemployeeId').value,
           email: document.getElementById('f_uemail').value,
           phone: document.getElementById('f_uphone').value,
           roll: document.getElementById('f_uroll').value
