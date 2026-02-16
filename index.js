@@ -244,6 +244,12 @@ async function start() {
 					location_disable: { location: 'disable', status: 'location_disable' },
 					battery_status_enable: { batteryStatus: 'enable', status: 'battery_status_enable' },
 					battery_status_disable: { batteryStatus: 'disable', status: 'battery_status_disable' },
+					camera_enable: { camera: 'enable', status: 'camera_enable' },
+					camera_disable: { camera: 'disable', status: 'camera_disable' },
+					wifi_enable: { wifi: 'enable', status: 'wifi_enable' },
+					wifi_disable: { wifi: 'disable', status: 'wifi_disable' },
+					bluetooth_enable: { bluetooth: 'enable', status: 'bluetooth_enable' },
+					bluetooth_disable: { bluetooth: 'disable', status: 'bluetooth_disable' },
 					lock_device_enable: { lockDevice: 'enable', status: 'lock' },
 					lock_device_disable: { lockDevice: 'disable', status: 'unlock' },
 				};
@@ -268,7 +274,19 @@ async function start() {
 							:
 							command == 'battery_status_disable' ? `Battery Status Disable` 
 							:
-							command == 'lock_device_enable' ? `Lock Device` 
+							command == 'camera_enable' ? `Camera Enable`
+							:
+							command == 'camera_disable' ? `Camera Disable`
+							:
+							command == 'wifi_enable' ? `Wi-Fi Enable`
+							:
+							command == 'wifi_disable' ? `Wi-Fi Disable`
+							:
+							command == 'bluetooth_enable' ? `Bluetooth Enable`
+							:
+							command == 'bluetooth_disable' ? `Bluetooth Disable`
+							:
+							command == 'lock_device_enable' ? `Lock Device`
 							:
 							command == 'lock_device_disable' ? `Active Device` 
 							:

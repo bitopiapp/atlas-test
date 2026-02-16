@@ -36,6 +36,18 @@ const Device = sequelize.define('Device', {
     type: DataTypes.STRING,
     defaultValue: 'disable',
   },
+  camera: {
+    type: DataTypes.STRING,
+    defaultValue: 'disable',
+  },
+  wifi: {
+    type: DataTypes.STRING,
+    defaultValue: 'disable',
+  },
+  bluetooth: {
+    type: DataTypes.STRING,
+    defaultValue: 'disable',
+  },
   lockDevice: {
     type: DataTypes.STRING,
     defaultValue: 'disable',
