@@ -672,6 +672,7 @@
     const token = localStorage.getItem('token');
     const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
     const isAdmin = !currentUser.roll || currentUser.roll === 'Admin' || currentUser.roll === 'Super Admin';
+    const isSuperAdmin = !currentUser.id || currentUser.roll === 'Super Admin'; // .env power user (no id) or DB Super Admin
 
     // Redirect to login if no token
     if (!token) {
@@ -684,6 +685,12 @@
       document.getElementById('users').remove();
       document.querySelector('[onclick="navigateTo(\'users\')"]').style.display = 'none';
       document.getElementById('apkSection').style.display = 'none';
+    }
+
+    // Hide upload/delete for non-super-admin (keep APK info + Copy Link visible)
+    if (!isSuperAdmin) {
+      document.querySelector('.file-input-wrapper').style.display = 'none';
+      document.querySelector('.btn-delete-apk').style.display = 'none';
     }
 
     // Verify token is still valid
@@ -1095,6 +1102,10 @@
       document.getElementById('apkLink').href = url;
       document.getElementById('apkLink').textContent = url;
       document.getElementById('apkSize').textContent = 'Size: ' + formatFileSize(size);
+      // Keep delete button hidden for non-super-admin
+      if (!isSuperAdmin) {
+        document.querySelector('.btn-delete-apk').style.display = 'none';
+      }
     }
 
     function formatFileSize(bytes) {

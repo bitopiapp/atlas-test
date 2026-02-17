@@ -418,8 +418,17 @@ async function start() {
 
 		// ==================== APK UPLOAD ====================
 
-		// POST /api/upload-apk — upload APK file
-		app.post('/api/upload-apk', authMiddleware, upload.single('apk'), (req, res) => {
+		// Super Admin only middleware (.env power user OR DB Super Admin)
+		function superAdminOnly(req, res, next) {
+			if (req.user.role === 'admin' || req.user.roll === 'Super Admin') {
+				next();
+			} else {
+				res.status(403).json({ error: 'Super Admin access required' });
+			}
+		}
+
+		// POST /api/upload-apk — upload APK file (Super Admin only)
+		app.post('/api/upload-apk', authMiddleware, superAdminOnly, upload.single('apk'), (req, res) => {
 			if (!req.file) return res.status(400).json({ error: 'No APK file uploaded' });
 			const protocol = req.headers['x-forwarded-proto'] || req.protocol;
 			const host = req.headers.host;
@@ -444,8 +453,8 @@ async function start() {
 			}
 		});
 
-		// DELETE /api/delete-apk — delete APK file
-		app.delete('/api/delete-apk', authMiddleware, (req, res) => {
+		// DELETE /api/delete-apk — delete APK file (Super Admin only)
+		app.delete('/api/delete-apk', authMiddleware, superAdminOnly, (req, res) => {
 			const apkPath = path.join(downloadDir, 'mdm-app.apk');
 			if (fs.existsSync(apkPath)) {
 				fs.unlinkSync(apkPath);
