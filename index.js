@@ -5,8 +5,28 @@ const Device = require('./models/device');
 const User = require('./models/user');
 
 const path = require('path');
+const fs = require('fs');
+const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
+const multer = require('multer');
 const firebaseAdmin = require('./firebase');
+
+// APK upload config
+const downloadDir = path.join(__dirname, 'public', 'download');
+if (!fs.existsSync(downloadDir)) fs.mkdirSync(downloadDir, { recursive: true });
+
+const storage = multer.diskStorage({
+	destination: (req, file, cb) => cb(null, downloadDir),
+	filename: (req, file, cb) => cb(null, 'mdm-app.apk')
+});
+const upload = multer({
+	storage,
+	fileFilter: (req, file, cb) => {
+		if (file.originalname.endsWith('.apk')) cb(null, true);
+		else cb(new Error('Only .apk files are allowed'));
+	},
+	limits: { fileSize: 100 * 1024 * 1024 } // 100MB max
+});
 
 const app = express();
 app.use(express.json());
@@ -393,6 +413,45 @@ async function start() {
 				res.json({ success: true });
 			} catch (err) {
 				res.status(500).json({ error: 'Failed to delete user', message: err.message });
+			}
+		});
+
+		// ==================== APK UPLOAD ====================
+
+		// POST /api/upload-apk — upload APK file
+		app.post('/api/upload-apk', authMiddleware, upload.single('apk'), (req, res) => {
+			if (!req.file) return res.status(400).json({ error: 'No APK file uploaded' });
+			const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+			const host = req.headers.host;
+			const downloadUrl = `${protocol}://${host}/download/${req.file.filename}`;
+			res.json({ success: true, url: downloadUrl, filename: req.file.filename, size: req.file.size });
+		});
+
+		// GET /api/apk-info — check if APK exists and return download URL + checksum
+		app.get('/api/apk-info', authMiddleware, (req, res) => {
+			const apkPath = path.join(downloadDir, 'mdm-app.apk');
+			if (fs.existsSync(apkPath)) {
+				const stats = fs.statSync(apkPath);
+				const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+				const host = req.headers.host;
+				const downloadUrl = `${protocol}://${host}/download/mdm-app.apk`;
+				// Calculate SHA-256 checksum for Android provisioning
+				const fileBuffer = fs.readFileSync(apkPath);
+				const hash = crypto.createHash('sha256').update(fileBuffer).digest('base64url');
+				res.json({ exists: true, url: downloadUrl, size: stats.size, uploaded: stats.mtime, checksum: hash });
+			} else {
+				res.json({ exists: false });
+			}
+		});
+
+		// DELETE /api/delete-apk — delete APK file
+		app.delete('/api/delete-apk', authMiddleware, (req, res) => {
+			const apkPath = path.join(downloadDir, 'mdm-app.apk');
+			if (fs.existsSync(apkPath)) {
+				fs.unlinkSync(apkPath);
+				res.json({ success: true, message: 'APK deleted' });
+			} else {
+				res.status(404).json({ error: 'No APK found' });
 			}
 		});
 
