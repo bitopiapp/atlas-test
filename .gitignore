@@ -7,6 +7,9 @@ firebase-service-account.json
 # Database
 database.sqlite
 
+# Uploaded APKs
+public/download/
+
 # Dependencies
 node_modules/
 

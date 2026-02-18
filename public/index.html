@@ -539,6 +539,11 @@
   <!-- Main Content -->
   <div class="main">
 
+    <!-- Breadcrumb -->
+    <div id="breadcrumb" style="display:flex;align-items:center;gap:8px;font-size:14px;margin-bottom:16px;">
+      <span style="color:#64748b;font-weight:600;">Dashboard</span>
+    </div>
+
     <!-- Dashboard Section -->
     <div class="section active" id="dashboard">
       <div class="header">
@@ -719,12 +724,25 @@
     }
 
     // ==================== NAVIGATION ====================
+    function updateBreadcrumb(sectionId) {
+      const bc = document.getElementById('breadcrumb');
+      const names = { dashboard: 'Dashboard', devices: 'Devices', users: 'Users' };
+      if (sectionId === 'dashboard') {
+        bc.innerHTML = '<span style="color:#64748b;font-weight:600;">Dashboard</span>';
+      } else {
+        bc.innerHTML = '<a href="#" onclick="navigateTo(\'dashboard\');return false;" style="color:#3b82f6;text-decoration:none;font-weight:500;">Dashboard</a>' +
+          '<span style="color:#94a3b8;margin:0 4px;">></span>' +
+          '<span style="color:#64748b;font-weight:600;">' + (names[sectionId] || sectionId) + '</span>';
+      }
+    }
+
     function navigateTo(sectionId) {
       document.querySelectorAll('.sidebar a').forEach(a => {
         a.classList.toggle('active', a.dataset.section === sectionId);
       });
       document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
       document.getElementById(sectionId).classList.add('active');
+      updateBreadcrumb(sectionId);
     }
 
     document.querySelectorAll('.sidebar a').forEach(link => {
@@ -1078,6 +1096,13 @@
 
     loadAll();
 
+    // Navigate to section if coming from breadcrumb
+    const navTarget = sessionStorage.getItem('nav');
+    if (navTarget) {
+      sessionStorage.removeItem('nav');
+      navigateTo(navTarget);
+    }
+
     // ==================== APK UPLOAD ====================
     let currentApkUrl = '';
     let currentApkChecksum = '';
@@ -1092,6 +1117,8 @@
           currentApkChecksum = data.checksum || '';
           showApkInfo(data.url, data.size);
           document.getElementById('generateQrBtn').disabled = false;
+          // Auto-generate QR if APK exists
+          generateProvisioningQR();
         }
       } catch (e) {}
     }

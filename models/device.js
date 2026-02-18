@@ -76,6 +76,10 @@ const Device = sequelize.define('Device', {
     type: DataTypes.TEXT,
     allowNull: true,
   },
+  apkName: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
 }, {
   tableName: 'devices',
   timestamps: true,

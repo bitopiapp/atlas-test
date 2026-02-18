@@ -28,6 +28,20 @@ const upload = multer({
 	limits: { fileSize: 100 * 1024 * 1024 } // 100MB max
 });
 
+// Per-device APK upload config
+const deviceApkStorage = multer.diskStorage({
+	destination: (req, file, cb) => cb(null, downloadDir),
+	filename: (req, file, cb) => cb(null, `device-${req.params.id}-${file.originalname}`)
+});
+const deviceApkUpload = multer({
+	storage: deviceApkStorage,
+	fileFilter: (req, file, cb) => {
+		if (file.originalname.endsWith('.apk')) cb(null, true);
+		else cb(new Error('Only .apk files are allowed'));
+	},
+	limits: { fileSize: 100 * 1024 * 1024 }
+});
+
 const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -310,7 +324,9 @@ async function start() {
 							:
 							command == 'lock_device_disable' ? `Active Device` 
 							:
-							command == 'send_message' ? `${msgText}` 
+							command == 'send_message' ? `${msgText}`
+							:
+							command == 'install_app' ? `${msgText}`
 							: command,
 							status: user.status,
 							updatedAt: new Date().toISOString(),
@@ -318,6 +334,10 @@ async function start() {
 
 				if (command === 'send_message' && msgText) {
 					fcmData.message = msgText;
+				}
+
+				if (command === 'install_app') {
+					fcmData.status = 'install_app';
 				}
 
 				const message = {
@@ -461,6 +481,66 @@ async function start() {
 				res.json({ success: true, message: 'APK deleted' });
 			} else {
 				res.status(404).json({ error: 'No APK found' });
+			}
+		});
+
+		// ==================== PER-DEVICE APK ====================
+
+		// POST /api/devices/:id/upload-apk — upload APK for a specific device
+		app.post('/api/devices/:id/upload-apk', authMiddleware, superAdminOnly, deviceApkUpload.single('apk'), async (req, res) => {
+			if (!req.file) return res.status(400).json({ error: 'No APK file uploaded' });
+			try {
+				const device = await Device.findByPk(req.params.id);
+				if (!device) return res.status(404).json({ error: 'Device not found' });
+				// Delete old APK if exists
+				if (device.apkName) {
+					const oldPath = path.join(downloadDir, `device-${device.id}-${device.apkName}`);
+					if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+				}
+				await device.update({ apkName: req.file.originalname });
+				const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+				const host = req.headers.host;
+				const downloadUrl = `${protocol}://${host}/download/${req.file.filename}`;
+				res.json({ success: true, url: downloadUrl, filename: req.file.originalname, size: req.file.size });
+			} catch (err) {
+				res.status(500).json({ error: 'Upload failed', message: err.message });
+			}
+		});
+
+		// GET /api/devices/:id/apk-info — get device APK info
+		app.get('/api/devices/:id/apk-info', authMiddleware, async (req, res) => {
+			try {
+				const device = await Device.findByPk(req.params.id);
+				if (!device) return res.status(404).json({ error: 'Device not found' });
+				if (!device.apkName) return res.json({ exists: false });
+				const apkFile = `device-${device.id}-${device.apkName}`;
+				const apkPath = path.join(downloadDir, apkFile);
+				if (fs.existsSync(apkPath)) {
+					const stats = fs.statSync(apkPath);
+					const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+					const host = req.headers.host;
+					const downloadUrl = `${protocol}://${host}/download/${apkFile}`;
+					res.json({ exists: true, url: downloadUrl, filename: device.apkName, size: stats.size, uploaded: stats.mtime });
+				} else {
+					res.json({ exists: false });
+				}
+			} catch (err) {
+				res.status(500).json({ error: 'Failed to get APK info', message: err.message });
+			}
+		});
+
+		// DELETE /api/devices/:id/delete-apk — delete device APK
+		app.delete('/api/devices/:id/delete-apk', authMiddleware, superAdminOnly, async (req, res) => {
+			try {
+				const device = await Device.findByPk(req.params.id);
+				if (!device) return res.status(404).json({ error: 'Device not found' });
+				if (!device.apkName) return res.status(404).json({ error: 'No APK found' });
+				const apkPath = path.join(downloadDir, `device-${device.id}-${device.apkName}`);
+				if (fs.existsSync(apkPath)) fs.unlinkSync(apkPath);
+				await device.update({ apkName: null });
+				res.json({ success: true, message: 'APK deleted' });
+			} catch (err) {
+				res.status(500).json({ error: 'Delete failed', message: err.message });
 			}
 		});
 

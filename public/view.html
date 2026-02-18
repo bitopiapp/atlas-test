@@ -303,6 +303,34 @@
       font-size: 16px;
     }
 
+    /* Breadcrumb */
+    .breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      margin-bottom: 16px;
+    }
+
+    .breadcrumb a {
+      color: #3b82f6;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .breadcrumb a:hover {
+      text-decoration: underline;
+    }
+
+    .breadcrumb span.separator {
+      color: #94a3b8;
+    }
+
+    .breadcrumb span.current {
+      color: #64748b;
+      font-weight: 600;
+    }
+
     /* Device Setting */
     .device-setting {
       background: #fff;
@@ -425,6 +453,13 @@
 
   <!-- Main Content -->
   <div class="main">
+    <div style="display:flex;align-items:center;gap:8px;font-size:14px;margin-bottom:16px;">
+      <a href="/" style="color:#3b82f6;text-decoration:none;font-weight:500;">Dashboard</a>
+      <span style="color:#94a3b8;">></span>
+      <a href="/" onclick="sessionStorage.setItem('nav','devices')" style="color:#3b82f6;text-decoration:none;font-weight:500;">Devices</a>
+      <span style="color:#94a3b8;">></span>
+      <span style="color:#64748b;font-weight:600;" id="breadcrumbName">Device Details</span>
+    </div>
     <div class="header">
       <h1>Device Details</h1>
       <a href="/" class="btn btn-back">Back to Devices</a>
@@ -538,6 +573,7 @@
         }
         const u = await res.json();
         currentDevice = u;
+        document.getElementById('breadcrumbName').textContent = u.name;
         const initials = u.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
         const statusClass = u.status === 'lock' ? 'status-lock' : 'status-unlock';
         const statusText = (u.status || 'unlock').charAt(0).toUpperCase() + (u.status || 'unlock').slice(1);
@@ -661,7 +697,32 @@
             </div>
           </div>
           </div>
+
+          <!-- Per-Device APK Section -->
+          <div style="margin-top:24px;background:#fff;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,0.1);overflow:hidden;">
+            <div style="background:#1e293b;color:#fff;padding:18px 32px;font-size:18px;font-weight:700;">Device APK</div>
+            <div style="padding:24px 32px;">
+              ${isSuperAdmin ? '<div style="display:flex;gap:12px;align-items:center;"><input type="file" id="apkFileView" accept=".apk" style="flex:1;padding:10px;border:2px dashed #e2e8f0;border-radius:8px;font-size:13px;cursor:pointer;background:#f8fafc;"><button onclick="uploadApkView()" id="uploadBtnView" style="padding:10px 24px;background:#22c55e;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;">Upload</button></div><div id="uploadProgressView" style="display:none;margin-top:12px;"><div style="width:100%;height:6px;background:#e2e8f0;border-radius:3px;overflow:hidden;"><div id="progressFillView" style="height:100%;background:#22c55e;border-radius:3px;transition:width 0.3s;width:0%;"></div></div><div id="uploadStatusView" style="font-size:12px;color:#64748b;margin-top:6px;">Uploading...</div></div>' : ''}
+              <div id="apkInfoView" style="display:none;margin-top:16px;padding:14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;">
+                <div style="font-size:14px;font-weight:600;color:#166534;" id="apkFileNameView">APK Ready</div>
+                <div style="margin-top:6px;font-size:13px;">
+                  <span style="color:#64748b;">Download: </span>
+                  <a id="apkLinkView" href="#" target="_blank" style="color:#2563eb;word-break:break-all;"></a>
+                </div>
+                <div id="apkSizeView" style="margin-top:4px;font-size:12px;color:#64748b;"></div>
+                <div style="margin-top:8px;display:flex;gap:8px;">
+                  <button onclick="copyApkLinkView()" style="padding:4px 12px;background:#3b82f6;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;">Copy Link</button>
+                  <button onclick="sendInstallApp()" style="padding:4px 12px;background:#f59e0b;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;">Install App</button>
+                  ${isSuperAdmin ? '<button onclick="deleteApkView()" style="padding:4px 12px;background:#ef4444;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;">Delete</button>' : ''}
+                </div>
+              </div>
+              <div id="noApkView" style="margin-top:16px;text-align:center;color:#94a3b8;font-size:14px;padding:12px;">No APK uploaded for this device</div>
+            </div>
+          </div>
         `;
+
+        // Check APK status after rendering
+        checkApkView();
       } catch (err) {
         document.getElementById('content').innerHTML = '<div class="loading">Error loading device.</div>';
       }
@@ -832,6 +893,139 @@
         }
       } catch (err) {
         showToast('Error: ' + err.message, 'error');
+      }
+    }
+
+    // ==================== PER-DEVICE APK MANAGEMENT ====================
+    let currentApkUrlView = '';
+
+    async function checkApkView() {
+      if (!currentDevice) return;
+      try {
+        const res = await fetch('/api/devices/' + currentDevice.id + '/apk-info', { headers: authHeaders });
+        const data = await res.json();
+        const infoDiv = document.getElementById('apkInfoView');
+        const noApk = document.getElementById('noApkView');
+        if (data.exists) {
+          currentApkUrlView = data.url;
+          document.getElementById('apkFileNameView').textContent = data.filename;
+          document.getElementById('apkLinkView').href = data.url;
+          document.getElementById('apkLinkView').textContent = data.url;
+          document.getElementById('apkSizeView').textContent = 'Size: ' + formatFileSize(data.size);
+          infoDiv.style.display = 'block';
+          noApk.style.display = 'none';
+        } else {
+          infoDiv.style.display = 'none';
+          noApk.style.display = 'block';
+        }
+      } catch (e) {}
+    }
+
+    function formatFileSize(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / 1048576).toFixed(1) + ' MB';
+    }
+
+    function uploadApkView() {
+      if (!currentDevice) return;
+      const fileInput = document.getElementById('apkFileView');
+      if (!fileInput || !fileInput.files[0]) {
+        showToast('Please select an APK file', 'error');
+        return;
+      }
+      const file = fileInput.files[0];
+      if (!file.name.endsWith('.apk')) {
+        showToast('Only .apk files are allowed', 'error');
+        return;
+      }
+
+      const btn = document.getElementById('uploadBtnView');
+      const progress = document.getElementById('uploadProgressView');
+      const fill = document.getElementById('progressFillView');
+      const status = document.getElementById('uploadStatusView');
+
+      btn.disabled = true;
+      btn.textContent = 'Uploading...';
+      progress.style.display = 'block';
+
+      const formData = new FormData();
+      formData.append('apk', file);
+
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', '/api/devices/' + currentDevice.id + '/upload-apk');
+      xhr.setRequestHeader('Authorization', 'Bearer ' + token);
+
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          const pct = Math.round((e.loaded / e.total) * 100);
+          fill.style.width = pct + '%';
+          status.textContent = 'Uploading... ' + pct + '%';
+        }
+      };
+
+      xhr.onload = () => {
+        btn.disabled = false;
+        btn.textContent = 'Upload';
+        if (xhr.status === 200) {
+          status.textContent = 'Upload complete!';
+          showToast('APK uploaded successfully');
+          setTimeout(() => { progress.style.display = 'none'; }, 2000);
+          checkApkView();
+        } else {
+          status.textContent = 'Upload failed';
+          showToast('Upload failed', 'error');
+        }
+      };
+
+      xhr.onerror = () => {
+        btn.disabled = false;
+        btn.textContent = 'Upload';
+        status.textContent = 'Upload failed';
+        showToast('Upload failed', 'error');
+      };
+
+      xhr.send(formData);
+    }
+
+    function copyApkLinkView() {
+      navigator.clipboard.writeText(currentApkUrlView).then(() => showToast('Link copied!'));
+    }
+
+    async function sendInstallApp() {
+      if (!currentDevice || !currentApkUrlView) {
+        showToast('No APK available to install', 'error');
+        return;
+      }
+      try {
+        const res = await fetch('/devices/' + currentDevice.id + '/send-command', {
+          method: 'POST',
+          headers: authHeaders,
+          body: JSON.stringify({ command: 'install_app', message: currentApkUrlView })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          showToast('Install command sent successfully');
+        } else {
+          showToast(data.error || 'Failed to send command', 'error');
+        }
+      } catch (err) {
+        showToast('Error: ' + err.message, 'error');
+      }
+    }
+
+    async function deleteApkView() {
+      if (!currentDevice || !confirm('Delete APK file?')) return;
+      try {
+        const res = await fetch('/api/devices/' + currentDevice.id + '/delete-apk', { method: 'DELETE', headers: authHeaders });
+        if (res.ok) {
+          currentApkUrlView = '';
+          document.getElementById('apkInfoView').style.display = 'none';
+          document.getElementById('noApkView').style.display = 'block';
+          showToast('APK deleted');
+        }
+      } catch (e) {
+        showToast('Delete failed', 'error');
       }
     }
 
