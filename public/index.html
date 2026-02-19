@@ -594,7 +594,7 @@
           <h3>Provisioning QR Code</h3>
           <div class="form-group" style="margin-bottom:10px;">
             <label style="font-size:12px;color:#64748b;">Admin Receiver</label>
-            <input type="text" id="qrAdminReceiver" value="com.uztech.phonelock/.DeviceAdminReceiver" readonly style="padding:8px 10px;font-size:12px;border:1px solid #e2e8f0;border-radius:6px;width:100%;">
+            <input type="text" id="qrAdminReceiver" value="com.uztech.phonelock/.DeviceAdminReceiver" readonly style="padding:8px 10px;font-size:12px;border:1px solid #e2e8f0;border-radius:6px;width:100%;filter:blur(3px);user-select:none;">
           </div>
           <div class="form-group" style="margin-bottom:10px;">
             <label style="font-size:12px;color:#64748b;">WiFi SSID (optional)</label>
@@ -964,7 +964,7 @@
               <option value="Super Admin" ${data && data.roll === 'Super Admin' ? 'selected' : ''}>Super Admin</option>
               <option value="Admin" ${data && data.roll === 'Admin' ? 'selected' : ''}>Admin</option>
               <option value="User" ${!data || data.roll === 'User' ? 'selected' : ''}>User</option>
-              <option value="Teem" ${data && data.roll === 'Teem' ? 'selected' : ''}>Teem</option>
+              <option value="Team" ${data && data.roll === 'Team' ? 'selected' : ''}>Team</option>
             </select>
           </div>
           <div class="modal-actions">
@@ -1002,7 +1002,7 @@
           <td><strong>${u.name}</strong></td>
           <td>${u.email || '-'}</td>
           <td>${u.phone || '-'}</td>
-          <td><span style="padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;${u.roll === 'Admin' ? 'background:#dbeafe;color:#2563eb' : u.roll === 'Teem' ? 'background:#fef9c3;color:#ca8a04' : 'background:#f1f5f9;color:#64748b'}">${u.roll || 'User'}</span></td>
+          <td><span style="padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;${u.roll === 'Admin' ? 'background:#dbeafe;color:#2563eb' : u.roll === 'Team' ? 'background:#fef9c3;color:#ca8a04' : 'background:#f1f5f9;color:#64748b'}">${u.roll || 'User'}</span></td>
           <td style="text-align:center;font-weight:700;color:${devCount > 0 ? '#2563eb' : '#94a3b8'}">${devCount}</td>
           <td class="actions">
             <button class="btn btn-edit" onclick="editUser(${u.id})">Edit</button>

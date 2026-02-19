@@ -550,7 +550,7 @@
     const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
     const isSuperAdmin = currentUser.name === 'Super Admin' || currentUser.roll === 'Super Admin';
     const canEdit = currentUser.roll !== 'User';
-    const canChangeAdminId = currentUser.roll !== 'Teem';
+    const canChangeAdminId = currentUser.roll !== 'Team';
 
     // Populate sidebar login info
     document.getElementById('sidebarUserName').textContent = currentUser.name || '-';
@@ -856,7 +856,7 @@
       document.getElementById('f_deviceToken').value = currentDevice.deviceToken || '';
       document.getElementById('adminDropdown').style.display = 'none';
 
-      // Teem role cannot change Admin ID
+      // Team role cannot change Admin ID
       const adminSearchInput = document.getElementById('f_adminIdSearch');
       if (!canChangeAdminId) {
         adminSearchInput.disabled = true;
