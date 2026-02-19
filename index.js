@@ -334,6 +334,7 @@ async function start() {
 					};
 
 				if (command === 'send_message' && msgText) {
+				fcmData.status = 'show-message';
 					fcmData.message = msgText;
 				}
 
@@ -579,3 +580,4 @@ async function start() {
 }
 
 start();
+;
