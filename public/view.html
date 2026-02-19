@@ -422,6 +422,18 @@
       cursor: not-allowed;
     }
 
+    /* Admin Search Dropdown */
+    .admin-option {
+      padding: 10px 14px;
+      cursor: pointer;
+      font-size: 14px;
+      color: #1e293b;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .admin-option:last-child { border-bottom: none; }
+    .admin-option:hover { background: #f0f9ff; color: #2563eb; }
+    .admin-option .sub { font-size: 12px; color: #94a3b8; margin-top: 2px; }
+
     /* Responsive */
     @media (max-width: 1024px) {
       .content-grid { flex-direction: column; }
@@ -448,6 +460,13 @@
     <h2>Atlas Panel</h2>
     <a href="/">Dashboard</a>
     <a href="/" class="active">Devices</a>
+    <div style="position:absolute;bottom:70px;left:0;right:0;padding:12px 16px;border-top:1px solid #334155;">
+      <div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Logged in as</div>
+      <div id="sidebarUserName" style="font-size:13px;color:#fff;font-weight:600;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
+      <div id="sidebarUserRoll" style="font-size:11px;color:#38bdf8;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
+      <div id="sidebarUserEmpId" style="font-size:11px;color:#94a3b8;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
+      <div id="sidebarUserEmail" style="font-size:11px;color:#94a3b8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
+    </div>
     <a href="#" onclick="logout()" style="position:absolute;bottom:20px;left:0;right:0;color:#ef4444;">Logout</a>
   </div>
 
@@ -481,18 +500,22 @@
         </div>
         <div class="form-group">
           <label>Admin ID *</label>
-          <input type="text" id="f_adminId" required>
+          <div style="position:relative;">
+            <input type="text" id="f_adminIdSearch" placeholder="Search user..." autocomplete="off"
+              style="width:100%;padding:10px 14px;border:2px solid #e2e8f0;border-radius:8px;font-size:14px;transition:border-color 0.2s;"
+              onfocus="this.style.borderColor='#3b82f6';showAdminDropdown()"
+              oninput="filterAdminDropdown(this.value)">
+            <input type="hidden" id="f_adminId">
+            <div id="adminDropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:2px solid #3b82f6;border-top:none;border-radius:0 0 8px 8px;max-height:180px;overflow-y:auto;z-index:100;box-shadow:0 4px 12px rgba(0,0,0,0.1);"></div>
+          </div>
         </div>
         <div class="form-group">
           <label>Employee ID</label>
           <input type="text" id="f_employeeId" placeholder="Enter employee ID">
         </div>
-        <div class="form-group">
-          <label>Location</label>
-          <div style="display:flex;gap:10px;">
-            <input type="text" id="f_latitude" placeholder="Latitude" style="flex:1;">
-            <input type="text" id="f_longitude" placeholder="Longitude" style="flex:1;">
-          </div>
+        <div class="form-group" style="display:none;">
+          <input type="hidden" id="f_latitude">
+          <input type="hidden" id="f_longitude">
         </div>
         <div class="form-group">
           <label>Device Token</label>
@@ -526,6 +549,14 @@
 
     const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
     const isSuperAdmin = currentUser.name === 'Super Admin' || currentUser.roll === 'Super Admin';
+    const canEdit = currentUser.roll !== 'User';
+    const canChangeAdminId = currentUser.roll !== 'Teem';
+
+    // Populate sidebar login info
+    document.getElementById('sidebarUserName').textContent = currentUser.name || '-';
+    document.getElementById('sidebarUserRoll').textContent = currentUser.roll || '-';
+    document.getElementById('sidebarUserEmpId').textContent = currentUser.employee_id || currentUser.employeeId || '-';
+    document.getElementById('sidebarUserEmail').textContent = currentUser.email || '-';
 
     const authHeaders = {
       'Content-Type': 'application/json',
@@ -628,7 +659,7 @@
               </div>
             </div>
             <div class="action-buttons">
-              <button class="btn btn-edit" onclick="openEdit()">Update</button>
+              ${canEdit ? '<button class="btn btn-edit" onclick="openEdit()">Update</button>' : ''}
               ${isSuperAdmin ? '<button class="btn btn-danger" onclick="deleteDevice()">Delete</button>' : ''}
             </div>
           </div>
@@ -758,10 +789,6 @@
       document.getElementById('deviceInfoOverlay').classList.add('show');
     }
 
-    document.getElementById('deviceInfoOverlay').addEventListener('click', (e) => {
-      if (e.target === e.currentTarget) e.target.classList.remove('show');
-    });
-
     // ==================== SEND COMMAND ====================
     async function sendCommand(command) {
       if (!currentDevice) return;
@@ -835,18 +862,42 @@
       document.getElementById('modalOverlay').classList.remove('show');
     }
 
-    document.getElementById('modalOverlay').addEventListener('click', (e) => {
-      if (e.target === e.currentTarget) closeModal();
-    });
-
     function openEdit() {
       if (!currentDevice) return;
       document.getElementById('f_name').value = currentDevice.name;
-      document.getElementById('f_adminId').value = currentDevice.adminId || '';
+      // Find matching user by employeeId OR db id (handles legacy adminId values)
+      const matchedUser = allUsers.find(u =>
+        (u.employeeId && u.employeeId === currentDevice.adminId) ||
+        String(u.id) === String(currentDevice.adminId)
+      );
+      if (matchedUser) {
+        // Always store employeeId so the filter works correctly
+        document.getElementById('f_adminId').value = matchedUser.employeeId || currentDevice.adminId;
+        document.getElementById('f_adminIdSearch').value = matchedUser.name + (matchedUser.employeeId ? ' (' + matchedUser.employeeId + ')' : '');
+      } else {
+        document.getElementById('f_adminId').value = currentDevice.adminId || '';
+        document.getElementById('f_adminIdSearch').value = currentDevice.adminId || '';
+      }
       document.getElementById('f_employeeId').value = currentDevice.employeeId || '';
       document.getElementById('f_latitude').value = currentDevice.latitude || '';
       document.getElementById('f_longitude').value = currentDevice.longitude || '';
       document.getElementById('f_deviceToken').value = currentDevice.deviceToken || '';
+      document.getElementById('adminDropdown').style.display = 'none';
+
+      // Teem role cannot change Admin ID
+      const adminSearchInput = document.getElementById('f_adminIdSearch');
+      if (!canChangeAdminId) {
+        adminSearchInput.disabled = true;
+        adminSearchInput.style.background = '#f1f5f9';
+        adminSearchInput.style.color = '#94a3b8';
+        adminSearchInput.style.cursor = 'not-allowed';
+      } else {
+        adminSearchInput.disabled = false;
+        adminSearchInput.style.background = '';
+        adminSearchInput.style.color = '';
+        adminSearchInput.style.cursor = '';
+      }
+
       document.getElementById('modalOverlay').classList.add('show');
     }
 
@@ -1029,6 +1080,67 @@
       }
     }
 
+    // ==================== ADMIN ID SEARCH DROPDOWN ====================
+    let allUsers = [];
+
+    async function fetchAllUsers() {
+      try {
+        const res = await fetch('/users', { headers: authHeaders });
+        if (res.ok) allUsers = await res.json();
+      } catch (e) {}
+    }
+
+    function showAdminDropdown() {
+      renderAdminOptions(allUsers);
+      document.getElementById('adminDropdown').style.display = 'block';
+    }
+
+    function filterAdminDropdown(query) {
+      const q = query.toLowerCase().trim();
+      const filtered = q
+        ? allUsers.filter(u =>
+            (u.name && u.name.toLowerCase().includes(q)) ||
+            (u.employeeId && u.employeeId.toLowerCase().includes(q)) ||
+            (u.email && u.email.toLowerCase().includes(q))
+          )
+        : allUsers;
+      renderAdminOptions(filtered);
+      document.getElementById('adminDropdown').style.display = 'block';
+      // clear hidden value if user is typing
+      document.getElementById('f_adminId').value = '';
+    }
+
+    function renderAdminOptions(users) {
+      const dd = document.getElementById('adminDropdown');
+      if (!users.length) {
+        dd.innerHTML = '<div class="admin-option" style="color:#94a3b8;">No users found</div>';
+        return;
+      }
+      dd.innerHTML = users.map(u => `
+        <div class="admin-option" onclick="selectAdmin('${u.employeeId || u.id}', '${u.name}', '${u.employeeId || ''}')">
+          <div><strong>${u.name}</strong></div>
+          <div class="sub">${u.employeeId ? 'EmpID: ' + u.employeeId + ' · ' : ''}${u.email || ''}</div>
+        </div>
+      `).join('');
+    }
+
+    function selectAdmin(adminId, name, empId) {
+      document.getElementById('f_adminId').value = adminId;
+      document.getElementById('f_adminIdSearch').value = name + (empId ? ' (' + empId + ')' : '');
+      document.getElementById('adminDropdown').style.display = 'none';
+      document.getElementById('f_adminIdSearch').style.borderColor = '#e2e8f0';
+    }
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+      const wrapper = document.getElementById('f_adminIdSearch');
+      const dd = document.getElementById('adminDropdown');
+      if (dd && wrapper && !wrapper.contains(e.target) && !dd.contains(e.target)) {
+        dd.style.display = 'none';
+      }
+    });
+
+    fetchAllUsers();
     loadDevice();
   </script>
 </body>

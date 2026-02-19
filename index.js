@@ -44,7 +44,7 @@ const deviceApkUpload = multer({
 
 const app = express();
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), { etag: false, maxAge: 0, setHeaders: (res) => { res.set('Cache-Control', 'no-store'); } }));
 
 console.log('Starting atlas-test...');
 
@@ -68,11 +68,11 @@ async function start() {
 			});
 			if (dbUser && dbUser.password === password) {
 				const token = jwt.sign(
-					{ id: dbUser.id, name: dbUser.name, email: dbUser.email, roll: dbUser.roll },
+					{ id: dbUser.id, name: dbUser.name, email: dbUser.email, roll: dbUser.roll, employeeId: dbUser.employeeId },
 					process.env.JWT_SECRET,
 					{ expiresIn: '24h' }
 				);
-				return res.json({ token, user: { id: dbUser.id, name: dbUser.name, roll: dbUser.roll } });
+				return res.json({ token, user: { id: dbUser.id, name: dbUser.name, roll: dbUser.roll, employeeId: dbUser.employeeId, email: dbUser.email } });
 			}
 
 			// 2. Fallback: .env super admin (always works)
@@ -81,7 +81,7 @@ async function start() {
 				password === process.env.ADMIN_PASSWORD
 			) {
 				const token = jwt.sign({ role: 'admin', name: 'Super Admin' }, process.env.JWT_SECRET, { expiresIn: '24h' });
-				return res.json({ token, user: { name: 'Super Admin', roll: 'Admin' } });
+				return res.json({ token, user: { name: 'Super Admin', roll: 'Admin', employeeId: '-', email: username } });
 			}
 
 			res.status(401).json({ error: 'Invalid username or password' });
@@ -118,9 +118,10 @@ async function start() {
 		app.get('/devices', authMiddleware, async (req, res) => {
 			try {
 				let where = {};
-				// If user roll is 'User', only show their devices
-				if (req.user.roll === 'User') {
-					where.adminId = String(req.user.id);
+				// Super Admin (.env) sees all; all DB roles only see devices matching their employeeId
+				const isSuperAdmin = req.user.role === 'admin' || req.user.roll === 'Super Admin' || req.user.roll === 'Admin';
+				if (!isSuperAdmin && req.user.employeeId) {
+					where.adminId = String(req.user.employeeId);
 				}
 				const devices = await Device.findAll({ where });
 				res.json(devices);
@@ -433,6 +434,19 @@ async function start() {
 				res.json({ success: true });
 			} catch (err) {
 				res.status(500).json({ error: 'Failed to delete user', message: err.message });
+			}
+		});
+
+		// PUT /users/:id/access — update user access permissions
+		app.put('/users/:id/access', authMiddleware, async (req, res) => {
+			try {
+				const user = await User.findByPk(req.params.id);
+				if (!user) return res.status(404).json({ error: 'User not found' });
+				const { accessUserEdit, accessUserDelete } = req.body;
+				await user.update({ accessUserEdit: !!accessUserEdit, accessUserDelete: !!accessUserDelete });
+				res.json({ success: true, user });
+			} catch (err) {
+				res.status(500).json({ error: 'Failed to update access', message: err.message });
 			}
 		});
 
