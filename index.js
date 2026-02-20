@@ -144,6 +144,9 @@ async function start() {
 				if (existingUser) {
 					return res.status(409).json({ error: 'Already device created' });
 				}
+				// Check max device limit
+				const limitErr = await checkMaxDevice(adminId);
+				if (limitErr) return res.status(403).json({ error: limitErr });
 				const user = await Device.create({ name, adminId, status, deviceToken });
 				res.status(201).json(user);
 			} catch (err) {
@@ -151,7 +154,20 @@ async function start() {
 			}
 		});
 
-		// POST /users — create a new user
+		// Helper: check maxDevice limit for an adminId
+		async function checkMaxDevice(adminId, excludeDeviceId = null) {
+			const adminUser = await User.findOne({ where: { employeeId: adminId } });
+			if (!adminUser || adminUser.maxDevice == null) return null; // no limit
+			const where = { adminId };
+			if (excludeDeviceId) where.id = { [require('sequelize').Op.ne]: excludeDeviceId };
+			const count = await Device.count({ where });
+			if (count >= adminUser.maxDevice) {
+				return `Max device limit reached (${adminUser.maxDevice}) for this admin`;
+			}
+			return null;
+		}
+
+		// POST /devices — create a new device
 		app.post('/devices', async (req, res) => {
 			try {
 				const { name, adminId, status, deviceToken } = req.body;
@@ -163,6 +179,9 @@ async function start() {
 				if (existingUser) {
 					return res.status(409).json({ error: 'Already device created' });
 				}
+				// Check max device limit
+				const limitErr = await checkMaxDevice(adminId);
+				if (limitErr) return res.status(403).json({ error: limitErr });
 				const user = await Device.create({ name, adminId, status, deviceToken });
 				res.status(201).json(user);
 			} catch (err) {
@@ -213,11 +232,18 @@ async function start() {
 			}
 		});
 
-		// PUT /users/:id — update user by id
+		// PUT /devices/:id — update device by id
 		app.put('/devices/:id', authMiddleware, async (req, res) => {
 			try {
 				const user = await Device.findByPk(req.params.id);
 				if (!user) return res.status(404).json({ error: 'Device not found' });
+				// Check max device limit when adminId is being assigned
+				const newAdminId = req.body.adminId;
+				if (newAdminId && newAdminId !== user.adminId) {
+					// Admin changing — check new admin's limit (don't exclude current device)
+					const limitErr = await checkMaxDevice(newAdminId);
+					if (limitErr) return res.status(403).json({ error: limitErr });
+				}
 				const oldStatus = user.status;
 				await user.update(req.body);
 
