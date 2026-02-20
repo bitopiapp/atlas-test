@@ -80,6 +80,26 @@ const Device = sequelize.define('Device', {
     type: DataTypes.STRING,
     allowNull: true,
   },
+  organization: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  unit: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  department: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  floor: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  block: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
 }, {
   tableName: 'devices',
   timestamps: true,

@@ -125,6 +125,8 @@
       padding: 32px;
       width: 420px;
       max-width: 90vw;
+      max-height: 90vh;
+      overflow-y: auto;
       box-shadow: 0 20px 60px rgba(0,0,0,0.2);
     }
 
@@ -518,6 +520,56 @@
           <input type="hidden" id="f_longitude">
         </div>
         <div class="form-group">
+          <label>Organization</label>
+          <div style="position:relative;">
+            <input type="text" id="f_organization" placeholder="Search organization..." autocomplete="off"
+              style="width:100%;padding:10px 14px;border:2px solid #e2e8f0;border-radius:8px;font-size:14px;transition:border-color 0.2s;"
+              onfocus="this.style.borderColor='#3b82f6';showCsDropdown('organization')"
+              oninput="filterCsDropdown('organization',this.value)">
+            <div id="csDropdown_organization" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:2px solid #3b82f6;border-top:none;border-radius:0 0 8px 8px;max-height:160px;overflow-y:auto;z-index:200;box-shadow:0 4px 12px rgba(0,0,0,0.1);"></div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Unit</label>
+          <div style="position:relative;">
+            <input type="text" id="f_unit" placeholder="Search unit..." autocomplete="off"
+              style="width:100%;padding:10px 14px;border:2px solid #e2e8f0;border-radius:8px;font-size:14px;transition:border-color 0.2s;"
+              onfocus="this.style.borderColor='#3b82f6';showCsDropdown('unit')"
+              oninput="filterCsDropdown('unit',this.value)">
+            <div id="csDropdown_unit" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:2px solid #3b82f6;border-top:none;border-radius:0 0 8px 8px;max-height:160px;overflow-y:auto;z-index:200;box-shadow:0 4px 12px rgba(0,0,0,0.1);"></div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Department</label>
+          <div style="position:relative;">
+            <input type="text" id="f_department" placeholder="Search department..." autocomplete="off"
+              style="width:100%;padding:10px 14px;border:2px solid #e2e8f0;border-radius:8px;font-size:14px;transition:border-color 0.2s;"
+              onfocus="this.style.borderColor='#3b82f6';showCsDropdown('department')"
+              oninput="filterCsDropdown('department',this.value)">
+            <div id="csDropdown_department" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:2px solid #3b82f6;border-top:none;border-radius:0 0 8px 8px;max-height:160px;overflow-y:auto;z-index:200;box-shadow:0 4px 12px rgba(0,0,0,0.1);"></div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Floor</label>
+          <div style="position:relative;">
+            <input type="text" id="f_floor" placeholder="Search floor..." autocomplete="off"
+              style="width:100%;padding:10px 14px;border:2px solid #e2e8f0;border-radius:8px;font-size:14px;transition:border-color 0.2s;"
+              onfocus="this.style.borderColor='#3b82f6';showCsDropdown('floor')"
+              oninput="filterCsDropdown('floor',this.value)">
+            <div id="csDropdown_floor" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:2px solid #3b82f6;border-top:none;border-radius:0 0 8px 8px;max-height:160px;overflow-y:auto;z-index:200;box-shadow:0 4px 12px rgba(0,0,0,0.1);"></div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Block</label>
+          <div style="position:relative;">
+            <input type="text" id="f_block" placeholder="Search block..." autocomplete="off"
+              style="width:100%;padding:10px 14px;border:2px solid #e2e8f0;border-radius:8px;font-size:14px;transition:border-color 0.2s;"
+              onfocus="this.style.borderColor='#3b82f6';showCsDropdown('block')"
+              oninput="filterCsDropdown('block',this.value)">
+            <div id="csDropdown_block" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:2px solid #3b82f6;border-top:none;border-radius:0 0 8px 8px;max-height:160px;overflow-y:auto;z-index:200;box-shadow:0 4px 12px rgba(0,0,0,0.1);"></div>
+          </div>
+        </div>
+        <div class="form-group">
           <label>Device Token</label>
           <input type="text" id="f_deviceToken" readonly style="background:#f1f5f9;color:#94a3b8;cursor:not-allowed">
         </div>
@@ -550,7 +602,7 @@
     const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
     const isSuperAdmin = currentUser.name === 'Super Admin' || currentUser.roll === 'Super Admin';
     const canEdit = currentUser.roll !== 'User';
-    const canChangeAdminId = currentUser.roll !== 'Team';
+    const canChangeAdminId = currentUser.roll === 'Admin' || currentUser.roll === 'Super Admin' || isSuperAdmin;
 
     // Populate sidebar login info
     document.getElementById('sidebarUserName').textContent = currentUser.name || '-';
@@ -628,7 +680,27 @@
                 <div class="detail-label">Admin ID</div>
                 <div class="detail-value">${u.adminId || '-'}</div>
               </div>
-              
+              <div class="detail-row">
+                <div class="detail-label">Organization</div>
+                <div class="detail-value">${u.organization || '-'}</div>
+              </div>
+              <div class="detail-row">
+                <div class="detail-label">Unit</div>
+                <div class="detail-value">${u.unit || '-'}</div>
+              </div>
+              <div class="detail-row">
+                <div class="detail-label">Department</div>
+                <div class="detail-value">${u.department || '-'}</div>
+              </div>
+              <div class="detail-row">
+                <div class="detail-label">Floor</div>
+                <div class="detail-value">${u.floor || '-'}</div>
+              </div>
+              <div class="detail-row">
+                <div class="detail-label">Block</div>
+                <div class="detail-value">${u.block || '-'}</div>
+              </div>
+
               ${buildDeviceInfoRows(u.deviceInfo)}
               <div class="detail-row">
                 <div class="detail-label">Location</div>
@@ -853,6 +925,13 @@
       document.getElementById('f_employeeId').value = currentDevice.employeeId || '';
       document.getElementById('f_latitude').value = currentDevice.latitude || '';
       document.getElementById('f_longitude').value = currentDevice.longitude || '';
+      // Set org from admin user (readonly), fallback to device's org
+      const adminOrg = matchedUser ? (matchedUser.organization || '') : (currentDevice.organization || '');
+      setOrgFromAdmin(adminOrg);
+      document.getElementById('f_unit').value = currentDevice.unit || '';
+      document.getElementById('f_department').value = currentDevice.department || '';
+      document.getElementById('f_floor').value = currentDevice.floor || '';
+      document.getElementById('f_block').value = currentDevice.block || '';
       document.getElementById('f_deviceToken').value = currentDevice.deviceToken || '';
       document.getElementById('adminDropdown').style.display = 'none';
 
@@ -870,6 +949,7 @@
         adminSearchInput.style.cursor = '';
       }
 
+      prefetchCsFields();
       document.getElementById('modalOverlay').classList.add('show');
     }
 
@@ -884,7 +964,12 @@
             adminId: document.getElementById('f_adminId').value,
             employeeId: document.getElementById('f_employeeId').value,
             latitude: document.getElementById('f_latitude').value,
-            longitude: document.getElementById('f_longitude').value
+            longitude: document.getElementById('f_longitude').value,
+            organization: document.getElementById('f_organization').value,
+            unit: document.getElementById('f_unit').value,
+            department: document.getElementById('f_department').value,
+            floor: document.getElementById('f_floor').value,
+            block: document.getElementById('f_block').value
           })
         });
         if (res.ok) {
@@ -1089,18 +1174,50 @@
         return;
       }
       dd.innerHTML = users.map(u => `
-        <div class="admin-option" onclick="selectAdmin('${u.employeeId || u.id}', '${u.name}', '${u.employeeId || ''}')">
+        <div class="admin-option" onclick="selectAdmin('${u.employeeId || u.id}', '${u.name.replace(/'/g,"\\'")}', '${(u.employeeId||'').replace(/'/g,"\\'")}', ${u.id})">
           <div><strong>${u.name}</strong></div>
-          <div class="sub">${u.employeeId ? 'EmpID: ' + u.employeeId + ' · ' : ''}${u.email || ''}</div>
+          <div class="sub">${u.employeeId ? 'EmpID: ' + u.employeeId + ' · ' : ''}${u.email || ''}${u.organization ? ' · ' + u.organization : ''}</div>
         </div>
       `).join('');
     }
 
-    function selectAdmin(adminId, name, empId) {
+    function selectAdmin(adminId, name, empId, userId) {
       document.getElementById('f_adminId').value = adminId;
       document.getElementById('f_adminIdSearch').value = name + (empId ? ' (' + empId + ')' : '');
       document.getElementById('adminDropdown').style.display = 'none';
       document.getElementById('f_adminIdSearch').style.borderColor = '#e2e8f0';
+      // Auto-fill organization from admin user (readonly)
+      const user = allUsers.find(u => u.id === userId);
+      setOrgFromAdmin(user ? (user.organization || '') : '');
+    }
+
+    function setOrgFromAdmin(org) {
+      const orgInp = document.getElementById('f_organization');
+      if (!orgInp) return;
+      orgInp.value = org;
+      if (!canChangeAdminId) {
+        // User / Team: disabled plain text (same style as Admin ID)
+        orgInp.disabled = true;
+        orgInp.style.background = '#f1f5f9';
+        orgInp.style.color = '#94a3b8';
+        orgInp.style.cursor = 'not-allowed';
+      } else {
+        // Admin / Super Admin: editable
+        // orgInp.disabled = false;
+        // orgInp.style.background = '';
+        // orgInp.style.color = '';
+        // orgInp.style.cursor = '';
+
+             orgInp.disabled = true;
+        orgInp.style.background = '#f1f5f9';
+        orgInp.style.color = '#94a3b8';
+        orgInp.style.cursor = 'not-allowed';
+      }
+      // Clear unit when org changes
+      const unitInp = document.getElementById('f_unit');
+      if (unitInp) unitInp.value = '';
+      // Invalidate unit cache so dropdown re-filters
+      if (window._csCache) delete window._csCache['unit'];
     }
 
     // Close dropdown when clicking outside
@@ -1110,7 +1227,83 @@
       if (dd && wrapper && !wrapper.contains(e.target) && !dd.contains(e.target)) {
         dd.style.display = 'none';
       }
+      // Close company-setup dropdowns
+      ['organization','unit','department','floor','block'].forEach(type => {
+        const inp = document.getElementById('f_' + type);
+        const csDd = document.getElementById('csDropdown_' + type);
+        if (csDd && inp && !inp.contains(e.target) && !csDd.contains(e.target)) {
+          csDd.style.display = 'none';
+          if (inp) inp.style.borderColor = '#e2e8f0';
+        }
+      });
     });
+
+    // ==================== COMPANY SETUP DROPDOWNS ====================
+    window._csCache = {};
+
+    async function loadCsField(type) {
+      if (window._csCache[type]) return window._csCache[type];
+      try {
+        const res = await fetch('/company-setup?type=' + type, { headers: authHeaders });
+        if (res.ok) window._csCache[type] = await res.json();
+        else window._csCache[type] = [];
+      } catch(e) { window._csCache[type] = []; }
+      return window._csCache[type];
+    }
+
+    function getFilteredCsItems(type, items) {
+      if (type === 'unit') {
+        const orgInp = document.getElementById('f_organization');
+        const org = orgInp ? orgInp.value.trim() : '';
+        if (org) return items.filter(i => i.organization === org);
+      }
+      return items;
+    }
+
+    async function showCsDropdown(type) {
+      const inp = document.getElementById('f_' + type);
+      if (inp && inp.disabled) return;
+      const items = await loadCsField(type);
+      renderCsOptions(type, getFilteredCsItems(type, items));
+      document.getElementById('csDropdown_' + type).style.display = 'block';
+    }
+
+    async function filterCsDropdown(type, query) {
+      const items = await loadCsField(type);
+      const base = getFilteredCsItems(type, items);
+      const q = query.toLowerCase().trim();
+      const filtered = q ? base.filter(i => i.value && i.value.toLowerCase().includes(q)) : base;
+      renderCsOptions(type, filtered);
+      document.getElementById('csDropdown_' + type).style.display = 'block';
+    }
+
+    function renderCsOptions(type, items) {
+      const dd = document.getElementById('csDropdown_' + type);
+      if (!items.length) {
+        dd.innerHTML = '<div class="admin-option" style="color:#94a3b8;">No entries found</div>';
+        return;
+      }
+      dd.innerHTML = items.map(i => {
+        const orgBadge = (type === 'unit' && i.organization)
+          ? `<span style="font-size:11px;color:#fff;background:#3b82f6;padding:1px 7px;border-radius:10px;margin-left:6px;">${i.organization}</span>`
+          : '';
+        return `<div class="admin-option" onclick="selectCsOption('${type}','${(i.value||'').replace(/'/g,"\\'")}')">
+          ${i.value}${orgBadge}
+        </div>`;
+      }).join('');
+    }
+
+    function selectCsOption(type, value) {
+      const inp = document.getElementById('f_' + type);
+      inp.value = value;
+      inp.style.borderColor = '#e2e8f0';
+      document.getElementById('csDropdown_' + type).style.display = 'none';
+    }
+
+    // Pre-fetch all cs fields when modal opens
+    function prefetchCsFields() {
+      ['organization','unit','department','floor','block'].forEach(loadCsField);
+    }
 
     fetchAllUsers();
     loadDevice();

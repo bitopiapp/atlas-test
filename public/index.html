@@ -533,6 +533,7 @@
     <a href="#" class="active" data-section="dashboard">Dashboard</a>
     <a href="#" data-section="devices">Devices</a>
     <a href="#" data-section="users">Users</a>
+    <a href="#" data-section="company">Company Setup</a>
     <div style="position:absolute;bottom:70px;left:0;right:0;padding:12px 16px;border-top:1px solid #334155;">
       <div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Logged in as</div>
       <div id="sidebarUserName" style="font-size:13px;color:#fff;font-weight:600;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
@@ -658,11 +659,112 @@
               <th>Phone</th>
               <th>Roll</th>
               <th>Total Devices</th>
+              <th>Max Device</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody id="usersTable"></tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- Company Setup Section -->
+    <div class="section" id="company">
+      <div class="header">
+        <h1>Company Setup</h1>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:24px;">
+
+        <!-- Organization -->
+        <div style="background:#fff;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,0.1);overflow:hidden;">
+          <div style="background:#1e293b;color:#fff;padding:16px 24px;display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:15px;font-weight:700;">Organization</span>
+            <button onclick="showAddForm('organization')" style="padding:5px 14px;background:#38bdf8;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">+ Add</button>
+          </div>
+          <div id="cs-add-organization" style="display:none;padding:12px 16px;background:#f8fafc;border-bottom:1px solid #e2e8f0;">
+            <div style="display:flex;gap:8px;">
+              <input type="text" id="cs-input-organization" placeholder="Enter organization name" style="flex:1;padding:8px 12px;border:2px solid #e2e8f0;border-radius:6px;font-size:13px;outline:none;" onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='#e2e8f0'">
+              <button onclick="addCompanySetup('organization')" style="padding:8px 16px;background:#22c55e;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;">Save</button>
+              <button onclick="hideAddForm('organization')" style="padding:8px 12px;background:#e2e8f0;color:#475569;border:none;border-radius:6px;font-size:13px;cursor:pointer;">✕</button>
+            </div>
+          </div>
+          <div id="cs-list-organization" style="padding:8px 0;min-height:60px;"></div>
+        </div>
+
+        <!-- Unit -->
+        <div style="background:#fff;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,0.1);overflow:hidden;">
+          <div style="background:#1e293b;color:#fff;padding:16px 24px;display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:15px;font-weight:700;">Unit</span>
+            <button onclick="showAddForm('unit')" style="padding:5px 14px;background:#38bdf8;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">+ Add</button>
+          </div>
+          <div id="cs-add-unit" style="display:none;padding:12px 16px;background:#f8fafc;border-bottom:1px solid #e2e8f0;">
+            <!-- Organization search dropdown -->
+            <div style="position:relative;margin-bottom:8px;">
+              <input type="text" id="cs-unit-org-search" placeholder="Search organization..." autocomplete="off"
+                style="width:100%;padding:8px 12px;border:2px solid #e2e8f0;border-radius:6px;font-size:13px;outline:none;"
+                onfocus="this.style.borderColor='#3b82f6';showUnitOrgDropdown()"
+                oninput="filterUnitOrgDropdown(this.value)">
+              <input type="hidden" id="cs-unit-org-value">
+              <div id="cs-unit-org-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:2px solid #3b82f6;border-top:none;border-radius:0 0 6px 6px;max-height:160px;overflow-y:auto;z-index:200;box-shadow:0 4px 12px rgba(0,0,0,0.1);"></div>
+            </div>
+            <!-- Unit name + Save/Cancel -->
+            <div style="display:flex;gap:8px;">
+              <input type="text" id="cs-input-unit" placeholder="Enter unit name" style="flex:1;padding:8px 12px;border:2px solid #e2e8f0;border-radius:6px;font-size:13px;outline:none;" onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='#e2e8f0'">
+              <button onclick="addUnit()" style="padding:8px 16px;background:#22c55e;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;">Save</button>
+              <button onclick="hideAddForm('unit')" style="padding:8px 12px;background:#e2e8f0;color:#475569;border:none;border-radius:6px;font-size:13px;cursor:pointer;">✕</button>
+            </div>
+          </div>
+          <div id="cs-list-unit" style="padding:8px 0;min-height:60px;"></div>
+        </div>
+
+        <!-- Department -->
+        <div style="background:#fff;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,0.1);overflow:hidden;">
+          <div style="background:#1e293b;color:#fff;padding:16px 24px;display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:15px;font-weight:700;">Department</span>
+            <button onclick="showAddForm('department')" style="padding:5px 14px;background:#38bdf8;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">+ Add</button>
+          </div>
+          <div id="cs-add-department" style="display:none;padding:12px 16px;background:#f8fafc;border-bottom:1px solid #e2e8f0;">
+            <div style="display:flex;gap:8px;">
+              <input type="text" id="cs-input-department" placeholder="Enter department name" style="flex:1;padding:8px 12px;border:2px solid #e2e8f0;border-radius:6px;font-size:13px;outline:none;" onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='#e2e8f0'">
+              <button onclick="addCompanySetup('department')" style="padding:8px 16px;background:#22c55e;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;">Save</button>
+              <button onclick="hideAddForm('department')" style="padding:8px 12px;background:#e2e8f0;color:#475569;border:none;border-radius:6px;font-size:13px;cursor:pointer;">✕</button>
+            </div>
+          </div>
+          <div id="cs-list-department" style="padding:8px 0;min-height:60px;"></div>
+        </div>
+
+        <!-- Floor -->
+        <div style="background:#fff;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,0.1);overflow:hidden;">
+          <div style="background:#1e293b;color:#fff;padding:16px 24px;display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:15px;font-weight:700;">Floor</span>
+            <button onclick="showAddForm('floor')" style="padding:5px 14px;background:#38bdf8;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">+ Add</button>
+          </div>
+          <div id="cs-add-floor" style="display:none;padding:12px 16px;background:#f8fafc;border-bottom:1px solid #e2e8f0;">
+            <div style="display:flex;gap:8px;">
+              <input type="text" id="cs-input-floor" placeholder="Enter floor name" style="flex:1;padding:8px 12px;border:2px solid #e2e8f0;border-radius:6px;font-size:13px;outline:none;" onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='#e2e8f0'">
+              <button onclick="addCompanySetup('floor')" style="padding:8px 16px;background:#22c55e;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;">Save</button>
+              <button onclick="hideAddForm('floor')" style="padding:8px 12px;background:#e2e8f0;color:#475569;border:none;border-radius:6px;font-size:13px;cursor:pointer;">✕</button>
+            </div>
+          </div>
+          <div id="cs-list-floor" style="padding:8px 0;min-height:60px;"></div>
+        </div>
+
+        <!-- Block -->
+        <div style="background:#fff;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,0.1);overflow:hidden;">
+          <div style="background:#1e293b;color:#fff;padding:16px 24px;display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:15px;font-weight:700;">Block</span>
+            <button onclick="showAddForm('block')" style="padding:5px 14px;background:#38bdf8;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">+ Add</button>
+          </div>
+          <div id="cs-add-block" style="display:none;padding:12px 16px;background:#f8fafc;border-bottom:1px solid #e2e8f0;">
+            <div style="display:flex;gap:8px;">
+              <input type="text" id="cs-input-block" placeholder="Enter block name" style="flex:1;padding:8px 12px;border:2px solid #e2e8f0;border-radius:6px;font-size:13px;outline:none;" onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='#e2e8f0'">
+              <button onclick="addCompanySetup('block')" style="padding:8px 16px;background:#22c55e;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;">Save</button>
+              <button onclick="hideAddForm('block')" style="padding:8px 12px;background:#e2e8f0;color:#475569;border:none;border-radius:6px;font-size:13px;cursor:pointer;">✕</button>
+            </div>
+          </div>
+          <div id="cs-list-block" style="padding:8px 0;min-height:60px;"></div>
+        </div>
+
       </div>
     </div>
 
@@ -704,6 +806,10 @@
       if (elUsersNav) elUsersNav.style.display = 'none';
       const elUsers = document.getElementById('users');
       if (elUsers) elUsers.remove();
+      const elCompanyNav = document.querySelector('[data-section="company"]');
+      if (elCompanyNav) elCompanyNav.style.display = 'none';
+      const elCompany = document.getElementById('company');
+      if (elCompany) elCompany.remove();
       const elUsersCard = document.getElementById('userCount') && document.getElementById('userCount').closest('.stat-card');
       if (elUsersCard) elUsersCard.style.display = 'none';
       const elApk = document.getElementById('apkSection');
@@ -746,7 +852,7 @@
     // ==================== NAVIGATION ====================
     function updateBreadcrumb(sectionId) {
       const bc = document.getElementById('breadcrumb');
-      const names = { dashboard: 'Dashboard', devices: 'Devices', users: 'Users' };
+      const names = { dashboard: 'Dashboard', devices: 'Devices', users: 'Users', company: 'Company Setup' };
       if (sectionId === 'dashboard') {
         bc.innerHTML = '<span style="color:#64748b;font-weight:600;">Dashboard</span>';
       } else {
@@ -951,13 +1057,6 @@
               <button type="button" onclick="togglePass('f_upassword', this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:18px;color:#64748b;">&#128065;</button>
             </div>
           </div>
-          <div class="form-group" ${isEdit ? 'style="display:none"' : ''}>
-            <label>Confirm Password *</label>
-            <div style="position:relative;">
-              <input type="password" id="f_uconfirm" ${isEdit ? '' : 'required'} style="padding-right:40px;">
-              <button type="button" onclick="togglePass('f_uconfirm', this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:18px;color:#64748b;">&#128065;</button>
-            </div>
-          </div>
           <div class="form-group">
             <label>Roll</label>
             <select id="f_uroll">
@@ -966,6 +1065,20 @@
               <option value="User" ${!data || data.roll === 'User' ? 'selected' : ''}>User</option>
               <option value="Team" ${data && data.roll === 'Team' ? 'selected' : ''}>Team</option>
             </select>
+          </div>
+          <div class="form-group">
+            <label>Organization</label>
+            <div style="position:relative;">
+              <input type="text" id="f_uorg" placeholder="Search organization..." autocomplete="off" value="${data ? data.organization || '' : ''}"
+                style="width:100%;padding:10px 14px;border:2px solid #e2e8f0;border-radius:8px;font-size:14px;transition:border-color 0.2s;"
+                onfocus="this.style.borderColor='#3b82f6';showUOrgDropdown()"
+                oninput="filterUOrgDropdown(this.value)">
+              <div id="uOrgDropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:2px solid #3b82f6;border-top:none;border-radius:0 0 8px 8px;max-height:160px;overflow-y:auto;z-index:300;box-shadow:0 4px 12px rgba(0,0,0,0.1);"></div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Max Device</label>
+            <input type="number" id="f_umaxDevice" min="0" placeholder="Enter max device count" value="${data && data.maxDevice != null ? data.maxDevice : ''}" style="width:100%;padding:10px 14px;border:2px solid #e2e8f0;border-radius:8px;font-size:14px;">
           </div>
           <div class="modal-actions">
             <button type="button" class="btn btn-cancel" onclick="closeModal()">Cancel</button>
@@ -990,7 +1103,7 @@
     function renderUsers(users) {
       const tbody = document.getElementById('usersTable');
       if (users.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><p>No users found</p></div></td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><p>No users found</p></div></td></tr>';
         return;
       }
       tbody.innerHTML = users.map(u => {
@@ -1004,6 +1117,7 @@
           <td>${u.phone || '-'}</td>
           <td><span style="padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;${u.roll === 'Admin' ? 'background:#dbeafe;color:#2563eb' : u.roll === 'Team' ? 'background:#fef9c3;color:#ca8a04' : 'background:#f1f5f9;color:#64748b'}">${u.roll || 'User'}</span></td>
           <td style="text-align:center;font-weight:700;color:${devCount > 0 ? '#2563eb' : '#94a3b8'}">${devCount}</td>
+          <td style="text-align:center;font-weight:700;color:${u.maxDevice != null ? '#7c3aed' : '#94a3b8'}">${u.maxDevice != null ? u.maxDevice : '-'}</td>
           <td class="actions">
             <button class="btn btn-edit" onclick="editUser(${u.id})">Edit</button>
             <button class="btn btn-danger" onclick="deleteUser(${u.id})">Delete</button>
@@ -1070,16 +1184,15 @@
           roll: document.getElementById('f_uroll').value
         };
         const pw = document.getElementById('f_upassword').value;
-        const confirm = document.getElementById('f_uconfirm').value;
         if (!editingId && !pw) {
           showToast('Password is required', 'error');
           return;
         }
-        if (pw && pw !== confirm && !editingId) {
-          showToast('Passwords do not match', 'error');
-          return;
-        }
         if (pw) body.password = pw;
+        const orgVal = document.getElementById('f_uorg');
+        if (orgVal) body.organization = orgVal.value.trim();
+        const maxDev = document.getElementById('f_umaxDevice');
+        if (maxDev && maxDev.value !== '') body.maxDevice = parseInt(maxDev.value) || null;
         method = editingId ? 'PUT' : 'POST';
         if (editingId) url += `/${editingId}`;
       } else {
@@ -1116,10 +1229,273 @@
       }
     }
 
+    // ==================== COMPANY SETUP ====================
+    const CS_TYPES = ['organization', 'unit', 'department', 'floor', 'block'];
+
+    function showAddForm(type) {
+      document.getElementById('cs-add-' + type).style.display = 'block';
+      if (type === 'unit') {
+        _unitOrgs = []; // refresh orgs each time form opens
+        document.getElementById('cs-unit-org-search').focus();
+      } else {
+        document.getElementById('cs-input-' + type).focus();
+      }
+    }
+
+    function hideAddForm(type) {
+      document.getElementById('cs-add-' + type).style.display = 'none';
+      document.getElementById('cs-input-' + type).value = '';
+    }
+
+    async function loadCompanySetup(type) {
+      try {
+        const res = await fetch(`${API}/company-setup?type=${type}`, { headers: authHeaders });
+        if (!res.ok) return;
+        const items = await res.json();
+        const list = document.getElementById('cs-list-' + type);
+        if (!list) return;
+        if (!items.length) {
+          list.innerHTML = '<div style="padding:16px 24px;font-size:13px;color:#94a3b8;">No entries yet</div>';
+          return;
+        }
+        list.innerHTML = items.map(item => `
+          <div id="cs-row-${item.id}" style="border-bottom:1px solid #f1f5f9;">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 24px;">
+              <div>
+                <span style="font-size:14px;color:#1e293b;">${item.value}</span>
+                ${type === 'unit' && item.organization ? `<span style="margin-left:8px;font-size:11px;color:#fff;background:#3b82f6;padding:2px 8px;border-radius:10px;">${item.organization}</span>` : ''}
+              </div>
+              <div style="display:flex;gap:6px;">
+                <button onclick="showEditRow('${type}', ${item.id}, '${(item.value||'').replace(/'/g,"\\'")}', '${(item.organization||'').replace(/'/g,"\\'")}' )" style="padding:4px 12px;background:#dbeafe;color:#2563eb;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">Edit</button>
+                <button onclick="deleteCompanySetup('${type}', ${item.id})" style="padding:4px 12px;background:#fee2e2;color:#dc2626;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">Delete</button>
+              </div>
+            </div>
+            <div id="cs-edit-row-${item.id}" style="display:none;padding:10px 24px;background:#f8fafc;"></div>
+          </div>
+        `).join('');
+      } catch (e) {}
+    }
+
+    async function addCompanySetup(type) {
+      const input = document.getElementById('cs-input-' + type);
+      const value = input.value.trim();
+      if (!value) { showToast('Please enter a value', 'error'); return; }
+      try {
+        const res = await fetch(`${API}/company-setup`, {
+          method: 'POST',
+          headers: authHeaders,
+          body: JSON.stringify({ type, value })
+        });
+        if (res.ok) {
+          hideAddForm(type);
+          loadCompanySetup(type);
+          showToast(type.charAt(0).toUpperCase() + type.slice(1) + ' added');
+        } else {
+          const err = await res.json();
+          showToast(err.error || 'Failed to add', 'error');
+        }
+      } catch (e) {
+        showToast('Error', 'error');
+      }
+    }
+
+    async function deleteCompanySetup(type, id) {
+      if (!confirm('Delete this entry?')) return;
+      try {
+        const res = await fetch(`${API}/company-setup/${id}`, { method: 'DELETE', headers: authHeaders });
+        if (res.ok) {
+          loadCompanySetup(type);
+          showToast('Deleted');
+        }
+      } catch (e) {}
+    }
+
+    function showEditRow(type, id, currentValue, currentOrg) {
+      const editDiv = document.getElementById('cs-edit-row-' + id);
+      if (!editDiv) return;
+      // toggle off if already open
+      if (editDiv.style.display !== 'none') { editDiv.style.display = 'none'; return; }
+      editDiv.innerHTML = `
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <input type="text" id="cs-edit-val-${id}" value="${currentValue}" placeholder="Enter value"
+            style="flex:1;min-width:140px;padding:6px 10px;border:2px solid #3b82f6;border-radius:6px;font-size:13px;outline:none;">
+          <button onclick="saveEditRow('${type}', ${id})" style="padding:6px 14px;background:#22c55e;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">Save</button>
+          <button onclick="document.getElementById('cs-edit-row-${id}').style.display='none'" style="padding:6px 10px;background:#e2e8f0;color:#475569;border:none;border-radius:6px;font-size:12px;cursor:pointer;">✕</button>
+        </div>
+      `;
+      editDiv.style.display = 'block';
+      document.getElementById('cs-edit-val-' + id).focus();
+    }
+
+    async function saveEditRow(type, id) {
+      const valInput = document.getElementById('cs-edit-val-' + id);
+      const value = valInput ? valInput.value.trim() : '';
+      if (!value) { showToast('Please enter a value', 'error'); return; }
+      const body = { value };
+      try {
+        const res = await fetch(`${API}/company-setup/${id}`, {
+          method: 'PUT',
+          headers: authHeaders,
+          body: JSON.stringify(body)
+        });
+        if (res.ok) {
+          loadCompanySetup(type);
+          showToast('Updated');
+        } else {
+          const err = await res.json();
+          showToast(err.error || 'Failed to update', 'error');
+        }
+      } catch (e) {
+        showToast('Error', 'error');
+      }
+    }
+
+    function loadAllCompanySetup() {
+      CS_TYPES.forEach(type => loadCompanySetup(type));
+    }
+
+    // ---- Add User: Organization dropdown ----
+    let _uOrgList = [];
+
+    async function showUOrgDropdown() {
+      if (!_uOrgList.length) {
+        try {
+          const res = await fetch(`${API}/company-setup?type=organization`, { headers: authHeaders });
+          if (res.ok) _uOrgList = await res.json();
+        } catch(e) {}
+      }
+      renderUOrgOptions(_uOrgList);
+      const dd = document.getElementById('uOrgDropdown');
+      if (dd) dd.style.display = 'block';
+    }
+
+    function filterUOrgDropdown(query) {
+      const q = query.toLowerCase().trim();
+      const filtered = q ? _uOrgList.filter(i => i.value && i.value.toLowerCase().includes(q)) : _uOrgList;
+      renderUOrgOptions(filtered);
+      const dd = document.getElementById('uOrgDropdown');
+      if (dd) dd.style.display = 'block';
+    }
+
+    function renderUOrgOptions(items) {
+      const dd = document.getElementById('uOrgDropdown');
+      if (!dd) return;
+      if (!items.length) {
+        dd.innerHTML = '<div style="padding:10px 14px;font-size:13px;color:#94a3b8;">No organizations found</div>';
+        return;
+      }
+      dd.innerHTML = items.map(i => `
+        <div onclick="selectUOrg('${(i.value||'').replace(/'/g,"\\'")}' )"
+          style="padding:10px 14px;font-size:14px;cursor:pointer;border-bottom:1px solid #f1f5f9;color:#1e293b;"
+          onmouseover="this.style.background='#f0f9ff'" onmouseout="this.style.background=''">
+          ${i.value}
+        </div>
+      `).join('');
+    }
+
+    function selectUOrg(value) {
+      const inp = document.getElementById('f_uorg');
+      if (inp) { inp.value = value; inp.style.borderColor = '#e2e8f0'; }
+      const dd = document.getElementById('uOrgDropdown');
+      if (dd) dd.style.display = 'none';
+    }
+
+    // Close uOrg dropdown on outside click
+    document.addEventListener('click', function(e) {
+      const inp = document.getElementById('f_uorg');
+      const dd = document.getElementById('uOrgDropdown');
+      if (dd && inp && !inp.contains(e.target) && !dd.contains(e.target)) {
+        dd.style.display = 'none';
+        if (inp) inp.style.borderColor = '#e2e8f0';
+      }
+    });
+
+    // ---- Unit: Organization search dropdown ----
+    let _unitOrgs = [];
+
+    async function showUnitOrgDropdown() {
+      // Load orgs if not yet loaded
+      if (!_unitOrgs.length) {
+        try {
+          const res = await fetch(`${API}/company-setup?type=organization`, { headers: authHeaders });
+          if (res.ok) _unitOrgs = await res.json();
+        } catch (e) {}
+      }
+      renderUnitOrgOptions(_unitOrgs);
+      document.getElementById('cs-unit-org-dropdown').style.display = 'block';
+    }
+
+    function filterUnitOrgDropdown(q) {
+      const filtered = q.trim()
+        ? _unitOrgs.filter(o => o.value.toLowerCase().includes(q.toLowerCase()))
+        : _unitOrgs;
+      renderUnitOrgOptions(filtered);
+      document.getElementById('cs-unit-org-dropdown').style.display = 'block';
+      document.getElementById('cs-unit-org-value').value = '';
+    }
+
+    function renderUnitOrgOptions(orgs) {
+      const dd = document.getElementById('cs-unit-org-dropdown');
+      if (!orgs.length) {
+        dd.innerHTML = '<div style="padding:10px 14px;font-size:13px;color:#94a3b8;">No organizations found</div>';
+        return;
+      }
+      dd.innerHTML = orgs.map(o => `
+        <div onclick="selectUnitOrg('${o.value.replace(/'/g, "\\'")}', ${o.id})"
+          style="padding:10px 14px;font-size:13px;color:#1e293b;cursor:pointer;border-bottom:1px solid #f1f5f9;"
+          onmouseover="this.style.background='#f0f9ff'" onmouseout="this.style.background=''">
+          ${o.value}
+        </div>
+      `).join('');
+    }
+
+    function selectUnitOrg(value, id) {
+      document.getElementById('cs-unit-org-search').value = value;
+      document.getElementById('cs-unit-org-value').value = value;
+      document.getElementById('cs-unit-org-dropdown').style.display = 'none';
+      document.getElementById('cs-input-unit').focus();
+    }
+
+    // Close org dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+      const search = document.getElementById('cs-unit-org-search');
+      const dd = document.getElementById('cs-unit-org-dropdown');
+      if (dd && search && !search.contains(e.target) && !dd.contains(e.target)) {
+        dd.style.display = 'none';
+      }
+    });
+
+    async function addUnit() {
+      const org = document.getElementById('cs-unit-org-value').value.trim();
+      const unitName = document.getElementById('cs-input-unit').value.trim();
+      if (!org) { showToast('Please select an organization', 'error'); return; }
+      if (!unitName) { showToast('Please enter a unit name', 'error'); return; }
+      try {
+        const res = await fetch(`${API}/company-setup`, {
+          method: 'POST',
+          headers: authHeaders,
+          body: JSON.stringify({ type: 'unit', value: unitName, organization: org })
+        });
+        if (res.ok) {
+          hideAddForm('unit');
+          document.getElementById('cs-unit-org-search').value = '';
+          document.getElementById('cs-unit-org-value').value = '';
+          loadCompanySetup('unit');
+          showToast('Unit added');
+        } else {
+          const err = await res.json();
+          showToast(err.error || 'Failed to add', 'error');
+        }
+      } catch (e) {
+        showToast('Error', 'error');
+      }
+    }
+
     // ==================== LOAD ALL DATA ====================
     function loadAll() {
       if (isAdmin) {
         fetchDevices().then(() => fetchUsers());
+        loadAllCompanySetup();
       } else {
         fetchDevices();
       }

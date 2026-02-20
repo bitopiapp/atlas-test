@@ -3,6 +3,7 @@ const express = require('express');
 const sequelize = require('./models/index');
 const Device = require('./models/device');
 const User = require('./models/user');
+const CompanySetup = require('./models/company_setup');
 
 const path = require('path');
 const fs = require('fs');
@@ -373,6 +374,74 @@ async function start() {
 			}
 		});
 
+		// ==================== COMPANY SETUP ROUTES ====================
+
+		// GET /company-setup?type=organization  → all rows for that type
+		app.get('/company-setup', authMiddleware, async (req, res) => {
+			try {
+				const { type } = req.query;
+				const validTypes = ['organization', 'unit', 'department', 'floor', 'block'];
+				if (!type || !validTypes.includes(type)) return res.status(400).json({ error: 'Invalid type' });
+				const { Op } = require('sequelize');
+				const rows = await CompanySetup.findAll({ where: { [type]: { [Op.ne]: null } }, order: [['createdAt', 'ASC']] });
+				res.json(rows.map(r => ({ id: r.id, value: r[type], organization: r.organization || null })));
+			} catch (e) {
+				res.status(500).json({ error: e.message });
+			}
+		});
+
+		// POST /company-setup { type, value, organization? }  → insert row
+		app.post('/company-setup', authMiddleware, async (req, res) => {
+			try {
+				const { type, value, organization } = req.body;
+				const validTypes = ['organization', 'unit', 'department', 'floor', 'block'];
+				if (!type || !validTypes.includes(type)) return res.status(400).json({ error: 'Invalid type' });
+				if (!value || !value.trim()) return res.status(400).json({ error: 'Value is required' });
+				const data = { [type]: value.trim() };
+				if (type === 'unit' && organization) data.organization = organization.trim();
+				const row = await CompanySetup.create(data);
+				res.status(201).json({ id: row.id, value: row[type], organization: row.organization });
+			} catch (e) {
+				res.status(500).json({ error: e.message });
+			}
+		});
+
+		// PUT /company-setup/:id  → update row
+		app.put('/company-setup/:id', authMiddleware, async (req, res) => {
+			try {
+				const { value, organization } = req.body;
+				if (!value || !value.trim()) return res.status(400).json({ error: 'Value is required' });
+				const row = await CompanySetup.findByPk(req.params.id);
+				if (!row) return res.status(404).json({ error: 'Not found' });
+				const updates = {};
+				// determine which column holds the value
+				const cols = ['organization', 'unit', 'department', 'floor', 'block'];
+				for (const col of cols) {
+					if (row[col] !== null && row[col] !== undefined) {
+						updates[col] = value.trim();
+						break;
+					}
+				}
+				if (organization !== undefined) updates.organization = organization;
+				await row.update(updates);
+				res.json({ success: true });
+			} catch (e) {
+				res.status(500).json({ error: e.message });
+			}
+		});
+
+		// DELETE /company-setup/:id  → delete row
+		app.delete('/company-setup/:id', authMiddleware, async (req, res) => {
+			try {
+				const row = await CompanySetup.findByPk(req.params.id);
+				if (!row) return res.status(404).json({ error: 'Not found' });
+				await row.destroy();
+				res.json({ success: true });
+			} catch (e) {
+				res.status(500).json({ error: e.message });
+			}
+		});
+
 		// ==================== USER ROUTES ====================
 
 		// GET /users — return all users
@@ -388,7 +457,7 @@ async function start() {
 		// POST /users — create a new user
 		app.post('/users', authMiddleware, async (req, res) => {
 			try {
-				const { name, employeeId, email, phone, password, roll } = req.body;
+				const { name, employeeId, email, phone, password, roll, organization, maxDevice } = req.body;
 				if (!name) return res.status(400).json({ error: 'Name is required' });
 				if (!email) return res.status(400).json({ error: 'Email is required' });
 				if (!password) return res.status(400).json({ error: 'Password is required' });
@@ -396,7 +465,7 @@ async function start() {
 				if (existingUser) {
 					return res.status(409).json({ error: 'Email already exists' });
 				}
-				const user = await User.create({ name, employeeId, email, phone, password, roll });
+				const user = await User.create({ name, employeeId, email, phone, password, roll, organization, maxDevice: maxDevice ? parseInt(maxDevice) : null });
 				res.status(201).json(user);
 			} catch (err) {
 				res.status(500).json({ error: 'Failed to create user', message: err.message });

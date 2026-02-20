@@ -32,6 +32,14 @@ const User = sequelize.define('User', {
     type: DataTypes.STRING,
     defaultValue: 'User',
   },
+  organization: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  maxDevice: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+  },
   accessUserEdit: {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
