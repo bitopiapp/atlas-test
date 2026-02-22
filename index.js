@@ -3,7 +3,13 @@ const express = require('express');
 const sequelize = require('./models/index');
 const Device = require('./models/device');
 const User = require('./models/user');
-const CompanySetup = require('./models/company_setup');
+const Organization = require('./models/organization');
+const Unit = require('./models/unit');
+const Department = require('./models/department');
+const Floor = require('./models/floor');
+const Block = require('./models/block');
+
+const CS_MODELS = { organization: Organization, unit: Unit, department: Department, floor: Floor, block: Block };
 
 const path = require('path');
 const fs = require('fs');
@@ -406,11 +412,9 @@ async function start() {
 		app.get('/company-setup', authMiddleware, async (req, res) => {
 			try {
 				const { type } = req.query;
-				const validTypes = ['organization', 'unit', 'department', 'floor', 'block'];
-				if (!type || !validTypes.includes(type)) return res.status(400).json({ error: 'Invalid type' });
-				const { Op } = require('sequelize');
-				const rows = await CompanySetup.findAll({ where: { [type]: { [Op.ne]: null } }, order: [['createdAt', 'ASC']] });
-				res.json(rows.map(r => ({ id: r.id, value: r[type], organization: r.organization || null })));
+				if (!type || !CS_MODELS[type]) return res.status(400).json({ error: 'Invalid type' });
+				const rows = await CS_MODELS[type].findAll({ order: [['createdAt', 'ASC']] });
+				res.json(rows.map(r => ({ id: r.id, value: r.name, organization: r.organization || null })));
 			} catch (e) {
 				res.status(500).json({ error: e.message });
 			}
@@ -420,35 +424,28 @@ async function start() {
 		app.post('/company-setup', authMiddleware, async (req, res) => {
 			try {
 				const { type, value, organization } = req.body;
-				const validTypes = ['organization', 'unit', 'department', 'floor', 'block'];
-				if (!type || !validTypes.includes(type)) return res.status(400).json({ error: 'Invalid type' });
+				if (!type || !CS_MODELS[type]) return res.status(400).json({ error: 'Invalid type' });
 				if (!value || !value.trim()) return res.status(400).json({ error: 'Value is required' });
-				const data = { [type]: value.trim() };
+				const data = { name: value.trim() };
 				if (type === 'unit' && organization) data.organization = organization.trim();
-				const row = await CompanySetup.create(data);
-				res.status(201).json({ id: row.id, value: row[type], organization: row.organization });
+				const row = await CS_MODELS[type].create(data);
+				res.status(201).json({ id: row.id, value: row.name, organization: row.organization || null });
 			} catch (e) {
 				res.status(500).json({ error: e.message });
 			}
 		});
 
-		// PUT /company-setup/:id  → update row
-		app.put('/company-setup/:id', authMiddleware, async (req, res) => {
+		// PUT /company-setup/:type/:id  → update row
+		app.put('/company-setup/:type/:id', authMiddleware, async (req, res) => {
 			try {
+				const { type, id } = req.params;
 				const { value, organization } = req.body;
+				if (!CS_MODELS[type]) return res.status(400).json({ error: 'Invalid type' });
 				if (!value || !value.trim()) return res.status(400).json({ error: 'Value is required' });
-				const row = await CompanySetup.findByPk(req.params.id);
+				const row = await CS_MODELS[type].findByPk(id);
 				if (!row) return res.status(404).json({ error: 'Not found' });
-				const updates = {};
-				// determine which column holds the value
-				const cols = ['organization', 'unit', 'department', 'floor', 'block'];
-				for (const col of cols) {
-					if (row[col] !== null && row[col] !== undefined) {
-						updates[col] = value.trim();
-						break;
-					}
-				}
-				if (organization !== undefined) updates.organization = organization;
+				const updates = { name: value.trim() };
+				if (type === 'unit' && organization !== undefined) updates.organization = organization;
 				await row.update(updates);
 				res.json({ success: true });
 			} catch (e) {
@@ -456,10 +453,12 @@ async function start() {
 			}
 		});
 
-		// DELETE /company-setup/:id  → delete row
-		app.delete('/company-setup/:id', authMiddleware, async (req, res) => {
+		// DELETE /company-setup/:type/:id  → delete row
+		app.delete('/company-setup/:type/:id', authMiddleware, async (req, res) => {
 			try {
-				const row = await CompanySetup.findByPk(req.params.id);
+				const { type, id } = req.params;
+				if (!CS_MODELS[type]) return res.status(400).json({ error: 'Invalid type' });
+				const row = await CS_MODELS[type].findByPk(id);
 				if (!row) return res.status(404).json({ error: 'Not found' });
 				await row.destroy();
 				res.json({ success: true });

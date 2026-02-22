@@ -688,6 +688,11 @@
               <button onclick="hideAddForm('organization')" style="padding:8px 12px;background:#e2e8f0;color:#475569;border:none;border-radius:6px;font-size:13px;cursor:pointer;">✕</button>
             </div>
           </div>
+          <div style="padding:8px 16px;border-bottom:1px solid #f1f5f9;">
+            <input type="text" id="cs-search-organization" placeholder="🔍 Search organization..." oninput="filterCompanySetup('organization', this.value)"
+              style="width:100%;padding:7px 12px;border:1.5px solid #e2e8f0;border-radius:6px;font-size:13px;outline:none;box-sizing:border-box;background:#f8fafc;"
+              onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='#e2e8f0'">
+          </div>
           <div id="cs-list-organization" style="padding:8px 0;min-height:60px;"></div>
         </div>
 
@@ -698,6 +703,7 @@
             <button onclick="showAddForm('unit')" style="padding:5px 14px;background:#38bdf8;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">+ Add</button>
           </div>
           <div id="cs-add-unit" style="display:none;padding:12px 16px;background:#f8fafc;border-bottom:1px solid #e2e8f0;">
+
             <!-- Organization search dropdown -->
             <div style="position:relative;margin-bottom:8px;">
               <input type="text" id="cs-unit-org-search" placeholder="Search organization..." autocomplete="off"
@@ -713,6 +719,11 @@
               <button onclick="addUnit()" style="padding:8px 16px;background:#22c55e;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;">Save</button>
               <button onclick="hideAddForm('unit')" style="padding:8px 12px;background:#e2e8f0;color:#475569;border:none;border-radius:6px;font-size:13px;cursor:pointer;">✕</button>
             </div>
+          </div>
+          <div style="padding:8px 16px;border-bottom:1px solid #f1f5f9;">
+            <input type="text" id="cs-search-unit" placeholder="🔍 Search unit..." oninput="filterCompanySetup('unit', this.value)"
+              style="width:100%;padding:7px 12px;border:1.5px solid #e2e8f0;border-radius:6px;font-size:13px;outline:none;box-sizing:border-box;background:#f8fafc;"
+              onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='#e2e8f0'">
           </div>
           <div id="cs-list-unit" style="padding:8px 0;min-height:60px;"></div>
         </div>
@@ -730,6 +741,11 @@
               <button onclick="hideAddForm('department')" style="padding:8px 12px;background:#e2e8f0;color:#475569;border:none;border-radius:6px;font-size:13px;cursor:pointer;">✕</button>
             </div>
           </div>
+          <div style="padding:8px 16px;border-bottom:1px solid #f1f5f9;">
+            <input type="text" id="cs-search-department" placeholder="🔍 Search department..." oninput="filterCompanySetup('department', this.value)"
+              style="width:100%;padding:7px 12px;border:1.5px solid #e2e8f0;border-radius:6px;font-size:13px;outline:none;box-sizing:border-box;background:#f8fafc;"
+              onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='#e2e8f0'">
+          </div>
           <div id="cs-list-department" style="padding:8px 0;min-height:60px;"></div>
         </div>
 
@@ -746,6 +762,11 @@
               <button onclick="hideAddForm('floor')" style="padding:8px 12px;background:#e2e8f0;color:#475569;border:none;border-radius:6px;font-size:13px;cursor:pointer;">✕</button>
             </div>
           </div>
+          <div style="padding:8px 16px;border-bottom:1px solid #f1f5f9;">
+            <input type="text" id="cs-search-floor" placeholder="🔍 Search floor..." oninput="filterCompanySetup('floor', this.value)"
+              style="width:100%;padding:7px 12px;border:1.5px solid #e2e8f0;border-radius:6px;font-size:13px;outline:none;box-sizing:border-box;background:#f8fafc;"
+              onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='#e2e8f0'">
+          </div>
           <div id="cs-list-floor" style="padding:8px 0;min-height:60px;"></div>
         </div>
 
@@ -761,6 +782,11 @@
               <button onclick="addCompanySetup('block')" style="padding:8px 16px;background:#22c55e;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;">Save</button>
               <button onclick="hideAddForm('block')" style="padding:8px 12px;background:#e2e8f0;color:#475569;border:none;border-radius:6px;font-size:13px;cursor:pointer;">✕</button>
             </div>
+          </div>
+          <div style="padding:8px 16px;border-bottom:1px solid #f1f5f9;">
+            <input type="text" id="cs-search-block" placeholder="🔍 Search block..." oninput="filterCompanySetup('block', this.value)"
+              style="width:100%;padding:7px 12px;border:1.5px solid #e2e8f0;border-radius:6px;font-size:13px;outline:none;box-sizing:border-box;background:#f8fafc;"
+              onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='#e2e8f0'">
           </div>
           <div id="cs-list-block" style="padding:8px 0;min-height:60px;"></div>
         </div>
@@ -1247,19 +1273,17 @@
       document.getElementById('cs-input-' + type).value = '';
     }
 
-    async function loadCompanySetup(type) {
-      try {
-        const res = await fetch(`${API}/company-setup?type=${type}`, { headers: authHeaders });
-        if (!res.ok) return;
-        const items = await res.json();
-        const list = document.getElementById('cs-list-' + type);
-        if (!list) return;
-        if (!items.length) {
-          list.innerHTML = '<div style="padding:16px 24px;font-size:13px;color:#94a3b8;">No entries yet</div>';
-          return;
-        }
-        list.innerHTML = items.map(item => `
-          <div id="cs-row-${item.id}" style="border-bottom:1px solid #f1f5f9;">
+    const _csItemsCache = {};
+
+    function renderCsItems(type, items) {
+      const list = document.getElementById('cs-list-' + type);
+      if (!list) return;
+      if (!items.length) {
+        list.innerHTML = '<div style="padding:16px 24px;font-size:13px;color:#94a3b8;">No entries found</div>';
+        return;
+      }
+      list.innerHTML = items.map(item => `
+          <div id="cs-row-${type}-${item.id}" style="border-bottom:1px solid #f1f5f9;">
             <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 24px;">
               <div>
                 <span style="font-size:14px;color:#1e293b;">${item.value}</span>
@@ -1270,7 +1294,49 @@
                 <button onclick="deleteCompanySetup('${type}', ${item.id})" style="padding:4px 12px;background:#fee2e2;color:#dc2626;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">Delete</button>
               </div>
             </div>
-            <div id="cs-edit-row-${item.id}" style="display:none;padding:10px 24px;background:#f8fafc;"></div>
+            <div id="cs-edit-row-${type}-${item.id}" style="display:none;padding:10px 24px;background:#f8fafc;"></div>
+          </div>
+        `).join('');
+    }
+
+    function filterCompanySetup(type, query) {
+      const items = _csItemsCache[type] || [];
+      const q = query.toLowerCase().trim();
+      const filtered = q ? items.filter(i =>
+        (i.value && i.value.toLowerCase().includes(q)) ||
+        (i.organization && i.organization.toLowerCase().includes(q))
+      ) : items;
+      renderCsItems(type, filtered);
+    }
+
+    async function loadCompanySetup(type) {
+      try {
+        const res = await fetch(`${API}/company-setup?type=${type}`, { headers: authHeaders });
+        if (!res.ok) return;
+        const items = await res.json();
+        _csItemsCache[type] = items;
+        // clear search on reload
+        const searchEl = document.getElementById('cs-search-' + type);
+        if (searchEl) searchEl.value = '';
+        const list = document.getElementById('cs-list-' + type);
+        if (!list) return;
+        if (!items.length) {
+          list.innerHTML = '<div style="padding:16px 24px;font-size:13px;color:#94a3b8;">No entries yet</div>';
+          return;
+        }
+        list.innerHTML = items.map(item => `
+          <div id="cs-row-${type}-${item.id}" style="border-bottom:1px solid #f1f5f9;">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 24px;">
+              <div>
+                <span style="font-size:14px;color:#1e293b;">${item.value}</span>
+                ${type === 'unit' && item.organization ? `<span style="margin-left:8px;font-size:11px;color:#fff;background:#3b82f6;padding:2px 8px;border-radius:10px;">${item.organization}</span>` : ''}
+              </div>
+              <div style="display:flex;gap:6px;">
+                <button onclick="showEditRow('${type}', ${item.id}, '${(item.value||'').replace(/'/g,"\\'")}', '${(item.organization||'').replace(/'/g,"\\'")}' )" style="padding:4px 12px;background:#dbeafe;color:#2563eb;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">Edit</button>
+                <button onclick="deleteCompanySetup('${type}', ${item.id})" style="padding:4px 12px;background:#fee2e2;color:#dc2626;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">Delete</button>
+              </div>
+            </div>
+            <div id="cs-edit-row-${type}-${item.id}" style="display:none;padding:10px 24px;background:#f8fafc;"></div>
           </div>
         `).join('');
       } catch (e) {}
@@ -1302,7 +1368,7 @@
     async function deleteCompanySetup(type, id) {
       if (!confirm('Delete this entry?')) return;
       try {
-        const res = await fetch(`${API}/company-setup/${id}`, { method: 'DELETE', headers: authHeaders });
+        const res = await fetch(`${API}/company-setup/${type}/${id}`, { method: 'DELETE', headers: authHeaders });
         if (res.ok) {
           loadCompanySetup(type);
           showToast('Deleted');
@@ -1310,35 +1376,97 @@
       } catch (e) {}
     }
 
-    function showEditRow(type, id, currentValue, currentOrg) {
-      const editDiv = document.getElementById('cs-edit-row-' + id);
+    let _editOrgList = [];
+
+    async function loadEditOrgList() {
+      if (_editOrgList.length) return;
+      try {
+        const res = await fetch(`${API}/company-setup?type=organization`, { headers: authHeaders });
+        if (res.ok) _editOrgList = await res.json();
+      } catch(e) {}
+    }
+
+    function showEditOrgDropdown(key) {
+      const q = document.getElementById('cs-edit-org-search-' + key).value.toLowerCase().trim();
+      const filtered = q ? _editOrgList.filter(o => o.value.toLowerCase().includes(q)) : _editOrgList;
+      const dd = document.getElementById('cs-edit-org-dd-' + key);
+      if (!filtered.length) {
+        dd.innerHTML = '<div style="padding:8px 12px;font-size:12px;color:#94a3b8;">No organizations</div>';
+      } else {
+        dd.innerHTML = filtered.map(o => `
+          <div onclick="selectEditOrg('${key}', '${o.value.replace(/'/g,"\\'")}' )"
+            style="padding:8px 12px;font-size:13px;color:#1e293b;cursor:pointer;border-bottom:1px solid #f1f5f9;"
+            onmouseover="this.style.background='#f0f9ff'" onmouseout="this.style.background=''">
+            ${o.value}
+          </div>`).join('');
+      }
+      dd.style.display = 'block';
+    }
+
+    function selectEditOrg(key, value) {
+      document.getElementById('cs-edit-org-search-' + key).value = value;
+      document.getElementById('cs-edit-org-val-' + key).value = value;
+      document.getElementById('cs-edit-org-dd-' + key).style.display = 'none';
+    }
+
+    async function showEditRow(type, id, currentValue, currentOrg) {
+      const key = type + '-' + id;
+      const editDiv = document.getElementById('cs-edit-row-' + key);
       if (!editDiv) return;
       // toggle off if already open
       if (editDiv.style.display !== 'none') { editDiv.style.display = 'none'; return; }
-      editDiv.innerHTML = `
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-          <input type="text" id="cs-edit-val-${id}" value="${currentValue}" placeholder="Enter value"
-            style="flex:1;min-width:140px;padding:6px 10px;border:2px solid #3b82f6;border-radius:6px;font-size:13px;outline:none;">
-          <button onclick="saveEditRow('${type}', ${id})" style="padding:6px 14px;background:#22c55e;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">Save</button>
-          <button onclick="document.getElementById('cs-edit-row-${id}').style.display='none'" style="padding:6px 10px;background:#e2e8f0;color:#475569;border:none;border-radius:6px;font-size:12px;cursor:pointer;">✕</button>
-        </div>
-      `;
+
+      if (type === 'unit') {
+        await loadEditOrgList();
+        editDiv.innerHTML = `
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <div style="position:relative;flex:1;min-width:140px;">
+              <input type="text" id="cs-edit-org-search-${key}" value="${currentOrg || ''}" placeholder="Organization"
+                onfocus="showEditOrgDropdown('${key}')" oninput="showEditOrgDropdown('${key}')"
+                autocomplete="off"
+                style="width:100%;padding:6px 10px;border:2px solid #3b82f6;border-radius:6px;font-size:13px;outline:none;box-sizing:border-box;">
+              <input type="hidden" id="cs-edit-org-val-${key}" value="${currentOrg || ''}">
+              <div id="cs-edit-org-dd-${key}" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid #e2e8f0;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.1);z-index:999;max-height:160px;overflow-y:auto;"></div>
+            </div>
+            <input type="text" id="cs-edit-val-${key}" value="${currentValue}" placeholder="Unit name"
+              style="flex:1;min-width:140px;padding:6px 10px;border:2px solid #3b82f6;border-radius:6px;font-size:13px;outline:none;">
+            <button onclick="saveEditRow('${type}', ${id})" style="padding:6px 14px;background:#22c55e;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">Save</button>
+            <button onclick="document.getElementById('cs-edit-row-${key}').style.display='none'" style="padding:6px 10px;background:#e2e8f0;color:#475569;border:none;border-radius:6px;font-size:12px;cursor:pointer;">✕</button>
+          </div>
+        `;
+      } else {
+        editDiv.innerHTML = `
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <input type="text" id="cs-edit-val-${key}" value="${currentValue}" placeholder="Enter value"
+              style="flex:1;min-width:140px;padding:6px 10px;border:2px solid #3b82f6;border-radius:6px;font-size:13px;outline:none;">
+            <button onclick="saveEditRow('${type}', ${id})" style="padding:6px 14px;background:#22c55e;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">Save</button>
+            <button onclick="document.getElementById('cs-edit-row-${key}').style.display='none'" style="padding:6px 10px;background:#e2e8f0;color:#475569;border:none;border-radius:6px;font-size:12px;cursor:pointer;">✕</button>
+          </div>
+        `;
+      }
+
       editDiv.style.display = 'block';
-      document.getElementById('cs-edit-val-' + id).focus();
+      document.getElementById('cs-edit-val-' + key).focus();
     }
 
     async function saveEditRow(type, id) {
-      const valInput = document.getElementById('cs-edit-val-' + id);
+      const key = type + '-' + id;
+      const valInput = document.getElementById('cs-edit-val-' + key);
       const value = valInput ? valInput.value.trim() : '';
       if (!value) { showToast('Please enter a value', 'error'); return; }
       const body = { value };
+      if (type === 'unit') {
+        const org = document.getElementById('cs-edit-org-val-' + key);
+        if (org) body.organization = org.value.trim();
+      }
       try {
-        const res = await fetch(`${API}/company-setup/${id}`, {
+        const res = await fetch(`${API}/company-setup/${type}/${id}`, {
           method: 'PUT',
           headers: authHeaders,
           body: JSON.stringify(body)
         });
         if (res.ok) {
+          _editOrgList = [];
           loadCompanySetup(type);
           showToast('Updated');
         } else {
