@@ -1801,7 +1801,12 @@
         'android.app.extra.PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME': adminReceiver,
         'android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_DOWNLOAD_LOCATION': currentApkUrl,
         'android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_CHECKSUM': currentApkChecksum,
-        'android.app.extra.PROVISIONING_SKIP_ENCRYPTION': false
+        'android.app.extra.PROVISIONING_LEAVE_ALL_SYSTEM_APPS_ENABLED': true,
+        'android.app.extra.PROVISIONING_SKIP_ENCRYPTION': true,
+        'android.app.extra.PROVISIONING_ADMIN_EXTRAS_BUNDLE': {
+          'server_url': window.location.origin,
+          'admin_id': String(currentUser.id || '0')
+        }
       };
 
       // Add WiFi config if provided
